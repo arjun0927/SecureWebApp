@@ -10,6 +10,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@openspacelabs/react-native-zoomable-view": "^2.3.1",
     "@react-native-async-storage/async-storage": "^2.1.0",
     "@react-native-community/datetimepicker": "^8.2.0",
     "@react-native-google-signin/google-signin": "^13.1.0",
@@ -21,6 +22,7 @@
     "react": "18.3.1",
     "react-native": "0.76.3",
     "react-native-app-intro-slider": "^4.0.4",
+    "react-native-asset": "^2.1.1",
     "react-native-fs": "^2.20.0",
     "react-native-image-picker": "^7.2.3",
     "react-native-linear-gradient": "^2.8.3",

@@ -25,7 +25,6 @@ const EditTables = () => {
 	const navigation = useNavigation();
 
 
-	const tableList = ['Table 1', 'Table 2', 'Table 3', 'Table 4'];
 
 	const handleSave = () => {
 		console.log('Saved');
@@ -34,10 +33,7 @@ const EditTables = () => {
 	const isFormValid = name && email;
 
 	return (
-		<KeyboardAvoidingView
-			style={{ flex: 1 }}
-			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-		>
+		
 			<View style={styles.container}>
 				<View style={styles.header}>
 					<View style={{ flexDirection: 'row' }}>
@@ -112,7 +108,6 @@ const EditTables = () => {
 					</TouchableOpacity>
 				</View>
 			</View>
-		</KeyboardAvoidingView>
 	);
 };
 

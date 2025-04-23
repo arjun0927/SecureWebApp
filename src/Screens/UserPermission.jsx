@@ -19,7 +19,7 @@ const UserPermission = ({ navigation }) => {
 
     const handleNextPress = () => {
         if (selectedButton === 'admin') {
-            navigation.navigate('AdminLogin'); // Navigate to AdminLogin
+            navigation.navigate('AdminLogin');
         } else if (selectedButton === 'user') {
             navigation.navigate('MainUserLogin');
         }

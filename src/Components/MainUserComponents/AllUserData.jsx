@@ -38,8 +38,11 @@ const AllUserData = ({ navigation, route }) => {
 	const [searchTerm, setSearchTerm] = useState('');
 	const animation = useRef(new Animated.Value(0)).current;
 
+	// Number of fields to display initially
+	const initialFieldsToShow = 3;
+
 	const { id, tableAccess, tableName } = route.params;
-	const { showToast, getAllTableData, userData, typeInfo, setUserData, setTypeInfo } = useGlobalContext()
+	const { showToast, getAllTableData, userData, typeInfo, setUserData, setTypeInfo } = useGlobalContext();
 
 
 	const hasFetchedData = useRef(false);
@@ -58,7 +61,6 @@ const AllUserData = ({ navigation, route }) => {
 			try {
 				setLoading(true);
 				await getAllTableData(id);
-
 				hasFetchedData.current = true; // Mark data as fetched
 			} catch (error) {
 				console.error('Error fetching data:', error);
@@ -75,14 +77,13 @@ const AllUserData = ({ navigation, route }) => {
 	};
 
 	const handleCircleSelect = (index, item) => {
-		// console.log('selected index', index)
-		// console.log('selected item', item.__ID)
 		if (selectedIndices.includes(index)) {
 			setSelectedIndices(selectedIndices.filter((i) => i !== index));
 		} else {
 			setSelectedIndices([...selectedIndices, index]);
 		}
 	};
+	
 	const handleDelete = async () => {
 		try {
 			let idsToDelete = [];
@@ -109,8 +110,7 @@ const AllUserData = ({ navigation, route }) => {
 				showToast({
 					type: 'SUCCESS',
 					message: 'Data deleted successfully'
-				})
-
+				});
 
 				// Update state to remove deleted items
 				setUserData(prevData => prevData.filter((_, index) => !idsToDelete.includes(userData[index]?.__ID)));
@@ -123,10 +123,11 @@ const AllUserData = ({ navigation, route }) => {
 			showToast({
 				type: 'ERROR',
 				message: 'Error deleting data'
-			})
+			});
 			console.error('Error deleting data:', error);
 		}
 	};
+	
 	const textOpacity = useRef(new Animated.Value(1)).current;
 
 	const toggleSearch = () => {
@@ -160,7 +161,6 @@ const AllUserData = ({ navigation, route }) => {
 		}
 	};
 
-
 	const searchWidth = animation.interpolate({
 		inputRange: [0, 1],
 		outputRange: ['0%', '48%'],
@@ -170,16 +170,28 @@ const AllUserData = ({ navigation, route }) => {
 		inputRange: [0, 1],
 		outputRange: [0, 50],
 	});
+	
 	const filteredData = userData.filter(item =>
 		Object.values(item).some(value =>
 			String(value).toLowerCase().includes(searchTerm.toLowerCase())
 		)
 	);
+	// console.log('all user Data', filteredData)
 
 	const handleSearch = (term) => {
 		setSearchTerm(term);
 	};
 
+	// Function to get fields to display based on expanded state
+	const getFieldsToDisplay = (index) => {
+		if (expandedIndex === index) {
+			return fieldData; // Show all fields when expanded
+		}
+		return fieldData.slice(0, initialFieldsToShow); // Show only the first 3 fields when collapsed
+	};
+
+	// Check if there are more fields to show
+	const hasMoreFields = (fieldData?.length || 0) > initialFieldsToShow;
 
 	return (
 		<KeyboardAvoidingView
@@ -188,14 +200,12 @@ const AllUserData = ({ navigation, route }) => {
 		>
 			<View style={styles.container}>
 				<View style={styles.header}>
-
 					<Text style={styles.usersText}>Table</Text>
 					<TouchableOpacity
 						style={{ flexDirection: 'row' }}
 						onPress={() => navigation.goBack()}
 					>
 						<Feather name="chevron-left" size={24} color="black" />
-
 						<Text style={styles.headerTitle}>{tableName}</Text>
 					</TouchableOpacity>
 				</View>
@@ -213,7 +223,6 @@ const AllUserData = ({ navigation, route }) => {
 							<TouchableOpacity style={styles.svgContainer} onPress={toggleSearch}>
 								<SearchSvg />
 							</TouchableOpacity>
-
 						</View>
 						<Animated.View style={[styles.searchContainer, { height: searchHeight, width: searchWidth }]}>
 							{isSearchVisible && (
@@ -226,7 +235,6 @@ const AllUserData = ({ navigation, route }) => {
 								/>
 							)}
 						</Animated.View>
-
 
 						<View style={{ flexDirection: 'row', gap: 10 }}>
 							<TouchableOpacity
@@ -259,14 +267,12 @@ const AllUserData = ({ navigation, route }) => {
 								</View>
 							</TouchableOpacity>
 						</View>
-
 					</View>
 				</View>
 
-
 				{loading ? (
 					<View style={styles.loaderContainer}>
-						<ActivityIndicator size="100" color="#4D8733" />
+						<ActivityIndicator animating={true} size={'large'} color="#4D8733" />
 					</View>
 				) : (
 					<View style={{ marginBottom: 105 }}>
@@ -275,10 +281,9 @@ const AllUserData = ({ navigation, route }) => {
 							keyExtractor={(item, index) =>
 								item.id ? item.id.toString() : index.toString()
 							}
-							
-							
 							renderItem={({ item, index }) => {
-								// console.log('FlatList item:', item); // Log item to the console
+								const fieldsToDisplay = getFieldsToDisplay(index);
+								
 								return (
 									<View style={styles.form}>
 										<View style={styles.cardHeader}>
@@ -303,7 +308,7 @@ const AllUserData = ({ navigation, route }) => {
 														)}
 													</View>
 												</TouchableOpacity>
-												<Text style={styles.headerText}>{item.__ID}</Text>
+												{/* <Text style={styles.headerText}>{item.__ID}</Text> */}
 											</View>
 											<View style={styles.rightCardHeader}>
 												<TouchableOpacity onPress={() => navigation.navigate('MainEditUser', { fieldData: fieldData, id: id, __ID: item.__ID, userItem: item, typeInfo: typeInfo })}>
@@ -319,31 +324,34 @@ const AllUserData = ({ navigation, route }) => {
 														<DeleteSvg />
 													</View>
 												</TouchableOpacity>
-
 											</View>
 										</View>
 										<View style={styles.headerLine}></View>
 										<View>
-											{fieldData.map((field, fieldIndex) => (
+											{fieldsToDisplay.map((field, fieldIndex) => (
 												<View key={fieldIndex} style={styles.dataRow}>
-													<Text style={styles.rowLabel}>{field}</Text>
-													<Text style={styles.rowValue}>{item[field]}</Text>
+													<Text style={styles.rowLabel} numberOfLines={1} ellipsizeMode="tail">{field}</Text>
+													<Text style={styles.rowValue} numberOfLines={1} ellipsizeMode="tail">{item[field]}</Text>
 												</View>
 											))}
 										</View>
-										<TouchableOpacity onPress={() => toggleAccordion(index)}>
-											<View style={styles.viewMoreContainer}>
-												<Feather
-													name={expandedIndex === index ? 'chevron-up' : 'chevron-down'}
-													color="black"
-													size={23}
-													style={{ marginRight: 5 }}
-												/>
-												<Text style={styles.viewMoreContainerText}>
-													{expandedIndex === index ? 'View Less' : 'View More'}
-												</Text>
-											</View>
-										</TouchableOpacity>
+										
+										{/* Only show View More/Less if there are more than initialFieldsToShow fields */}
+										{hasMoreFields && (
+											<TouchableOpacity onPress={() => toggleAccordion(index)}>
+												<View style={styles.viewMoreContainer}>
+													<Feather
+														name={expandedIndex === index ? 'chevron-up' : 'chevron-down'}
+														color="black"
+														size={23}
+														style={{ marginRight: 5 }}
+													/>
+													<Text style={styles.viewMoreContainerText}>
+														{expandedIndex === index ? 'View Less' : 'View More'}
+													</Text>
+												</View>
+											</TouchableOpacity>
+										)}
 									</View>
 								);
 							}}
@@ -355,7 +363,7 @@ const AllUserData = ({ navigation, route }) => {
 								setModalVisible={setModalVisible}
 								handleDelete={handleDelete}
 								handleCancel={() => setModalVisible(false)}
-								selectedIndices={selectedIndices}  // Pass selectedIndices to the modal
+								selectedIndices={selectedIndices}
 							/>
 						)}
 					</View>
@@ -365,9 +373,7 @@ const AllUserData = ({ navigation, route }) => {
 	);
 };
 
-
 export default AllUserData;
-
 
 const styles = StyleSheet.create({
 	container: {
@@ -388,13 +394,13 @@ const styles = StyleSheet.create({
 	},
 	usersText: {
 		color: '#848486',
-		fontSize: responsiveFontSize(2),
-		fontWeight: '400',
+		fontSize: responsiveFontSize(1.8),
+		fontFamily:'Poppins-Medium'
 	},
 	headerTitle: {
 		color: '#222327',
-		fontSize: responsiveFontSize(2.3),
-		fontWeight: '500',
+		fontSize: responsiveFontSize(2),
+		fontFamily:'Poppins-Medium',
 		marginLeft: 5,
 	},
 	searchContainer: {
@@ -414,9 +420,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 15,
 		borderColor: '#DDD',
 		borderWidth: 1,
-		// flex: 1,
 	},
-
 	svgContainer: {
 		paddingHorizontal: 12,
 		paddingVertical: 8,
@@ -433,7 +437,7 @@ const styles = StyleSheet.create({
 		gap: 5,
 		justifyContent: 'center',
 		alignItems: 'center',
-		paddingHorizontal: 15,
+		paddingHorizontal: 10,
 		paddingVertical: 8,
 		backgroundColor: '#FFF',
 		borderColor: '#4D8733',
@@ -441,9 +445,9 @@ const styles = StyleSheet.create({
 		borderRadius: 10,
 	},
 	addUserContainerText: {
-		fontSize: responsiveFontSize(2),
+		fontSize: responsiveFontSize(1.8),
 		color: 'black',
-		fontWeight: '500',
+		fontFamily:'Poppins-Medium'
 	},
 	form: {
 		backgroundColor: '#FFF',
@@ -463,19 +467,17 @@ const styles = StyleSheet.create({
 	leftCardHeader: {
 		flexDirection: 'row',
 		gap: 10,
-		// flex:3,
 		width: '65%',
 		alignItems: 'center',
 	},
 	headerText: {
 		fontSize: responsiveFontSize(2),
 		color: 'black',
-		fontWeight: '500',
+		fontFamily:'Poppins-Medium',
 	},
 	rightCardHeader: {
 		flexDirection: 'row',
 		gap: 10,
-		// flex:1,
 		alignItems: 'center',
 	},
 	headerRightIcon: {
@@ -503,27 +505,27 @@ const styles = StyleSheet.create({
 		borderBottomWidth: 0,
 	},
 	rowLabel: {
-		width: '50%',
+		flex: 1,
 		color: '#222327',
 		fontSize: responsiveFontSize(1.7),
-		fontWeight: '400',
+		fontFamily: 'Poppins-Regular',
 	},
 	rowValue: {
 		flex: 1,
 		color: '#767A8D',
-		fontSize: responsiveFontSize(1.8),
-		fontWeight: '400',
+		fontSize: responsiveFontSize(1.7),
+		fontFamily: 'Poppins-Regular',
 	},
 	viewMoreContainer: {
 		flexDirection: 'row',
 		paddingHorizontal: 20,
 		justifyContent: 'center',
 		alignItems: 'center',
+		marginTop: 10,
 	},
 	viewMoreContainerText: {
 		color: '#4D8733',
 		fontSize: responsiveFontSize(1.7),
-		fontWeight: '400',
+		fontFamily:'Poppins-Medium'
 	},
-
 });

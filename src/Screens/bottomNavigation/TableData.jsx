@@ -57,7 +57,7 @@ const TableData = ({ navigation }) => {
       }
     };
   
-    fetchData();  // Make the API call once when the component mounts or when dependencies change
+    fetchData();  
   }, []);
   
 

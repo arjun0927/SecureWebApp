@@ -12,6 +12,8 @@ import {
 	Animated,
 	Easing,
 	Modal,
+	StatusBar,
+	PanResponder,
 } from 'react-native';
 import React, { useEffect, useState, useRef } from 'react';
 import Feather from 'react-native-vector-icons/Feather';
@@ -20,9 +22,9 @@ import SearchSvg from '../assets/Svgs/SearchSvg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import Video from 'react-native-video';
-import { black } from 'react-native-paper/lib/typescript/styles/themes/v2/colors';
 
 const screenWidth = Dimensions.get('window').width;
+const screenHeight = Dimensions.get('window').height;
 
 const Notification = ({ navigation }) => {
 	const [features, setFeatures] = useState([]);
@@ -32,7 +34,155 @@ const Notification = ({ navigation }) => {
 	const [enlargedVideo, setEnlargedVideo] = useState(null); // State to track enlarged video
 	const [input, setInput] = useState('');
 	const [isExpanded, setIsExpanded] = useState(false);
+	const [isFullScreen, setIsFullScreen] = useState(false);
 	const animation = useRef(new Animated.Value(0)).current;
+	
+	// Image zoom state
+	const scale = useRef(new Animated.Value(1)).current;
+	const lastScale = useRef(1);
+	const offsetX = useRef(new Animated.Value(0)).current;
+	const offsetY = useRef(new Animated.Value(0)).current;
+	const lastX = useRef(0);
+	const lastY = useRef(0);
+	const initialDistance = useRef(null);
+
+	// Create pan responder for image zooming
+	const panResponder = useRef(
+		PanResponder.create({
+			onStartShouldSetPanResponder: () => true,
+			onStartShouldSetPanResponderCapture: () => true,
+			onMoveShouldSetPanResponder: () => true,
+			onMoveShouldSetPanResponderCapture: () => true,
+			
+			onPanResponderGrant: () => {
+				lastX.current = offsetX._value;
+				lastY.current = offsetY._value;
+			},
+			
+			onPanResponderMove: (evt, gestureState) => {
+				// Handle pinch zoom
+				if (evt.nativeEvent.changedTouches.length >= 2) {
+					const touches = evt.nativeEvent.changedTouches;
+					const touchA = touches[0];
+					const touchB = touches[1];
+					
+					// Calculate distance between two touch points
+					const distance = Math.sqrt(
+						Math.pow(touchA.pageX - touchB.pageX, 2) +
+						Math.pow(touchA.pageY - touchB.pageY, 2)
+					);
+					
+					// Initial distance on touch start
+					if (!initialDistance.current) {
+						initialDistance.current = distance;
+						return;
+					}
+					
+					// Calculate new scale
+					const newScale = (distance / initialDistance.current) * lastScale.current;
+					
+					// Limit scale between 1 and 3
+					if (newScale >= 1 && newScale <= 3) {
+						scale.setValue(newScale);
+					}
+				} 
+				// Handle pan
+				else if (lastScale.current > 1) {
+					// Only allow panning when zoomed in
+					offsetX.setValue(lastX.current + gestureState.dx);
+					offsetY.setValue(lastY.current + gestureState.dy);
+				}
+			},
+			
+			onPanResponderRelease: () => {
+				lastScale.current = scale._value;
+				initialDistance.current = null;
+				
+				// If scale is less than 1.1, reset to original position
+				if (scale._value < 1.1) {
+					Animated.parallel([
+						Animated.spring(scale, {
+							toValue: 1,
+							useNativeDriver: true,
+						}),
+						Animated.spring(offsetX, {
+							toValue: 0,
+							useNativeDriver: true,
+						}),
+						Animated.spring(offsetY, {
+							toValue: 0,
+							useNativeDriver: true,
+						}),
+					]).start(() => {
+						lastScale.current = 1;
+						lastX.current = 0;
+						lastY.current = 0;
+					});
+				}
+			},
+			
+			onPanResponderTerminate: () => {
+				lastScale.current = scale._value;
+				initialDistance.current = null;
+			},
+		})
+	).current;
+
+	// Reset zoom values when closing the modal
+	const resetZoom = () => {
+		scale.setValue(1);
+		offsetX.setValue(0);
+		offsetY.setValue(0);
+		lastScale.current = 1;
+		lastX.current = 0;
+		lastY.current = 0;
+		initialDistance.current = null;
+	};
+
+	// Double tap to zoom
+	const handleDoubleTap = () => {
+		if (lastScale.current > 1) {
+			// Reset zoom
+			Animated.parallel([
+				Animated.spring(scale, {
+					toValue: 1,
+					useNativeDriver: true,
+				}),
+				Animated.spring(offsetX, {
+					toValue: 0,
+					useNativeDriver: true,
+				}),
+				Animated.spring(offsetY, {
+					toValue: 0,
+					useNativeDriver: true,
+				}),
+			]).start(() => {
+				lastScale.current = 1;
+				lastX.current = 0;
+				lastY.current = 0;
+			});
+		} else {
+			// Zoom in
+			Animated.spring(scale, {
+				toValue: 2,
+				useNativeDriver: true,
+			}).start(() => {
+				lastScale.current = 2;
+			});
+		}
+	};
+
+	// Handle double tap timer
+	const lastTap = useRef(null);
+	const handleImagePress = () => {
+		const now = Date.now();
+		if (lastTap.current && (now - lastTap.current) < 300) {
+			handleDoubleTap();
+			lastTap.current = null;
+		} else {
+			lastTap.current = now;
+		}
+	};
 
 	// Fetch Notifications
 	const getNotification = async () => {
@@ -57,6 +207,17 @@ const Notification = ({ navigation }) => {
 	useEffect(() => {
 		getNotification();
 	}, []);
+
+	useEffect(() => {
+		// Hide status bar when in fullscreen video mode
+		if (enlargedVideo) {
+			StatusBar.setHidden(true);
+		} else {
+			StatusBar.setHidden(false);
+		}
+
+		return () => StatusBar.setHidden(false);
+	}, [enlargedVideo]);
 
 	// Generate Direct Video URL
 	const getDirectVideoUrl = (url) => {
@@ -129,6 +290,17 @@ const Notification = ({ navigation }) => {
 		outputRange: [0, 3],
 	});
 
+	// Toggle fullscreen mode for video
+	const toggleFullScreen = () => {
+		setIsFullScreen(!isFullScreen);
+	};
+
+	// Close enlarged image
+	const closeEnlargedImage = () => {
+		resetZoom();
+		setEnlargedImage(null);
+	};
+
 	return (
 		<KeyboardAvoidingView
 			style={{ flex: 1 }}
@@ -143,7 +315,7 @@ const Notification = ({ navigation }) => {
 							onPress={() => navigation.goBack()}
 						>
 							<Feather name="chevron-left" size={24} color="black" />
-							<Text style={styles.headerTitle}>What’s New ✨</Text>
+							<Text style={styles.headerTitle}>What's New ✨</Text>
 						</TouchableOpacity>
 					</View>
 					<Animated.View
@@ -204,7 +376,7 @@ const Notification = ({ navigation }) => {
 									</TouchableOpacity>
 									<TouchableOpacity
 										style={styles.enlargeIcon}
-										onPress={() => setEnlargedVideo(feature.videoUrl)} // Directly open video in landscape
+										onPress={() => setEnlargedVideo(feature.videoUrl)} // Open video in fullscreen
 									>
 										<Feather name="maximize" size={20} color="#FFF" />
 									</TouchableOpacity>
@@ -236,36 +408,91 @@ const Notification = ({ navigation }) => {
 				</ScrollView>
 
 			</View>
+
+			{/* Image Modal with native zoom implementation */}
 			{enlargedImage && (
-				<Modal transparent={true} animationType="fade" visible={true}>
-					<TouchableOpacity
-						style={styles.modalOverlay}
-						onPress={() => setEnlargedImage(null)}
-					>
-						<Image
-							source={{ uri: enlargedImage }}
-							style={styles.enlargedImage}
-							resizeMode="contain"
-						/>
-					</TouchableOpacity>
+				<Modal 
+					transparent={true} 
+					animationType="fade" 
+					visible={enlargedImage !== null}
+					statusBarTranslucent={true}
+					onRequestClose={closeEnlargedImage}
+				>
+					<View style={styles.modalOverlay}>
+						<Animated.View 
+							style={{
+								transform: [
+									{ scale },
+									{ translateX: offsetX },
+									{ translateY: offsetY }
+								]
+							}}
+							{...panResponder.panHandlers}
+						>
+							<TouchableOpacity 
+								activeOpacity={1}
+								onPress={handleImagePress}
+							>
+								<Image
+									source={{ uri: enlargedImage }}
+									style={styles.enlargedImage}
+									resizeMode="contain"
+								/>
+							</TouchableOpacity>
+						</Animated.View>
+						<View style={styles.imageControlsOverlay}>
+							<TouchableOpacity
+								style={styles.closeIcon}
+								onPress={closeEnlargedImage}
+							>
+								<Feather name="x" size={30} color="#FFF" />
+							</TouchableOpacity>
+							<Text style={styles.zoomInstructions}>
+								Pinch to zoom • Double tap to {lastScale.current > 1 ? "reset" : "zoom"}
+							</Text>
+						</View>
+					</View>
 				</Modal>
 			)}
+
+			{/* Video Fullscreen Modal */}
 			{enlargedVideo && (
-				<View style={styles.enlargedMediaContainer}>
-					<Video
-						source={{ uri: getDirectVideoUrl(enlargedVideo) }}
-						style={styles.enlargedMedia}
-						resizeMode="contain"
-						controls={true}
-						paused={true}
-					/>
-					<TouchableOpacity
-						style={styles.closeIcon}
-						onPress={() => setEnlargedVideo(null)}
-					>
-						<Feather name="x" size={30} color="#FFF" />
-					</TouchableOpacity>
-				</View>
+				<Modal
+					visible={enlargedVideo !== null}
+					transparent={false}
+					animationType="fade"
+					statusBarTranslucent={true}
+					onRequestClose={() => setEnlargedVideo(null)}
+				>
+					<View style={styles.fullscreenVideoContainer}>
+						<Video
+							source={{ uri: getDirectVideoUrl(enlargedVideo) }}
+							style={styles.fullscreenVideo}
+							resizeMode={isFullScreen ? "cover" : "contain"}
+							controls={true}
+							paused={false}
+							fullscreen={isFullScreen}
+						/>
+						<View style={styles.videoControlsContainer}>
+							<TouchableOpacity
+								style={styles.closeIcon}
+								onPress={() => setEnlargedVideo(null)}
+							>
+								<Feather name="x" size={30} color="#FFF" />
+							</TouchableOpacity>
+							<TouchableOpacity
+								style={styles.fullscreenIcon}
+								onPress={toggleFullScreen}
+							>
+								<Feather 
+									name={isFullScreen ? "minimize" : "maximize"} 
+									size={30} 
+									color="#FFF" 
+								/>
+							</TouchableOpacity>
+						</View>
+					</View>
+				</Modal>
 			)}
 		</KeyboardAvoidingView>
 	);
@@ -275,7 +502,10 @@ export default Notification;
 
 
 const styles = StyleSheet.create({
-	container: { flex: 1, backgroundColor: '#F4FAF4' },
+	container: { 
+		flex: 1, 
+		backgroundColor: '#F4FAF4' 
+	},
 	enlargeIcon: {
 		position: 'absolute',
 		bottom: 5,
@@ -284,35 +514,58 @@ const styles = StyleSheet.create({
 		padding: 5,
 		borderRadius: 15,
 	},
-	enlargedMediaContainer: {
-		flex: 1,
-		position: 'absolute',
-		top: '25%',
-		// backgroundColor: 'transparent',
-		backgroundColor: 'black',
-	},
-	enlargedMedia: {
-		width: screenWidth,
-		height: screenWidth,
-	},
-	closeIcon: {
-		position: 'absolute',
-		top: 20,
-		right: 20,
-		backgroundColor: 'rgba(0, 0, 0, 0.7)',
-		padding: 10,
-		borderRadius: 50,
-	},
-
 	enlargedImage: {
-		width: screenWidth * 0.92,
-		height: screenWidth * 0.92,
+		width: screenWidth,
+		height: screenHeight * 0.8,
 	},
 	modalOverlay: {
 		flex: 1,
-		backgroundColor: 'rgba(0, 0, 0, 0.7)',
+		backgroundColor: 'rgba(0, 0, 0, 0.9)',
 		justifyContent: 'center',
 		alignItems: 'center',
+	},
+	imageControlsOverlay: {
+		position: 'absolute',
+		top: 0,
+		left: 0,
+		right: 0,
+		padding: 20,
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+	},
+	zoomInstructions: {
+		color: 'white',
+		backgroundColor: 'rgba(0, 0, 0, 0.5)',
+		padding: 8,
+		borderRadius: 20,
+		fontSize: 12,
+	},
+	fullscreenVideoContainer: {
+		flex: 1,
+		backgroundColor: '#000',
+		justifyContent: 'center',
+	},
+	fullscreenVideo: {
+		width: screenWidth,
+		height: screenHeight,
+	},
+	videoControlsContainer: {
+		position: 'absolute',
+		top: 40,
+		right: 20,
+		flexDirection: 'row',
+	},
+	fullscreenIcon: {
+		backgroundColor: 'rgba(0, 0, 0, 0.5)',
+		padding: 10,
+		borderRadius: 25,
+		marginLeft: 10,
+	},
+	closeIcon: {
+		backgroundColor: 'rgba(0, 0, 0, 0.5)',
+		padding: 10,
+		borderRadius: 25,
 	},
 	header: {
 		flexDirection: 'row',
@@ -329,10 +582,27 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 10,
 		overflow: 'hidden',
 	},
-	textInput: { flex: 1, backgroundColor: 'transparent', height: '100%', fontSize: 16, paddingHorizontal: 10 },
-	searchIconContainer: { justifyContent: 'center', alignItems: 'center' },
-	animatedInputContainer: { height: '100%', overflow: 'hidden' },
-	headerTitle: { color: '#222327', fontSize: responsiveFontSize(2.3), fontWeight: '400', marginLeft: 5 },
+	textInput: { 
+		flex: 1, 
+		backgroundColor: 'transparent', 
+		height: '100%', 
+		fontSize: 16, 
+		paddingHorizontal: 10 
+	},
+	searchIconContainer: { 
+		justifyContent: 'center', 
+		alignItems: 'center' 
+	},
+	animatedInputContainer: { 
+		height: '100%', 
+		overflow: 'hidden' 
+	},
+	headerTitle: { 
+		color: '#222327', 
+		fontSize: responsiveFontSize(2.3), 
+		fontWeight: '400', 
+		marginLeft: 5 
+	},
 	middleTextContainer: {
 		marginLeft: 10,
 		marginRight: 10,
@@ -349,7 +619,10 @@ const styles = StyleSheet.create({
 		letterSpacing: 0.5,
 		fontFamily: 'Montserrat',
 	},
-	featuresContainer: { flex: 1, paddingHorizontal: 15 },
+	featuresContainer: { 
+		flex: 1, 
+		paddingHorizontal: 15 
+	},
 	featureCard: {
 		backgroundColor: '#FFF',
 		borderRadius: 10,
@@ -360,10 +633,25 @@ const styles = StyleSheet.create({
 		elevation: 3,
 		height: 120,
 	},
-	media: { width: screenWidth / 3, height: '80%', borderRadius: 10, marginRight: 15 },
-	featureDetails: { flex: 1 },
-	featureDate: { fontSize: responsiveFontSize(1.5), color: '#888', marginBottom: 5 },
-	featureName: { fontSize: responsiveFontSize(2), color: '#222', fontWeight: '600' },
+	media: { 
+		width: screenWidth / 3, 
+		height: '80%', 
+		borderRadius: 10, 
+		marginRight: 15 
+	},
+	featureDetails: { 
+		flex: 1 
+	},
+	featureDate: { 
+		fontSize: responsiveFontSize(1.5), 
+		color: '#888', 
+		marginBottom: 5 
+	},
+	featureName: { 
+		fontSize: responsiveFontSize(2), 
+		color: '#222', 
+		fontWeight: '600' 
+	},
 	playIcon: {
 		position: 'absolute',
 		top: 22,
