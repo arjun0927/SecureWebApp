@@ -67,18 +67,17 @@ const styles = StyleSheet.create({
     gap: 5,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'absolute', // Keeps the content fixed at the bottom
-    bottom: 20,
+    position: 'absolute',
+    bottom: 10,
   },
   img: {
     width: 28,
     height: 29,
   },
   logoText: {
-    fontSize: 15,
-    color: '#1C390E',
-    fontWeight: 'bold',
-    fontFamily: 'Poppins',
+    fontSize: 14,
+    color: '#222327',
+    fontFamily: 'Poppins-Medium',
     letterSpacing: 0.516,
   },
 });

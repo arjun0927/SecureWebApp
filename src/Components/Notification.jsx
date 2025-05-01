@@ -232,7 +232,7 @@ const Notification = ({ navigation }) => {
 			return {
 				...prevState,
 				[videoUrl]: {
-					playing: !isCurrentlyPlaying, // Toggle play state for the specific video
+					playing: !isCurrentlyPlaying,
 				},
 			};
 		});

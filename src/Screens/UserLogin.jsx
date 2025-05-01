@@ -15,9 +15,7 @@ const UserLogin = ({ navigation }) => {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false); // To track loading state
-    const [error, setError] = useState(null); // To handle error messages
-
-    // Determine if both email and password are filled
+    const [error, setError] = useState(null); 
     const isFormValid = email.trim() !== '' && password.trim() !== '';
 
     // Handle sign-in logic with API call
@@ -32,13 +30,13 @@ const UserLogin = ({ navigation }) => {
                 email,
                 password,
             });
-            console.log(response); // Log the full response object to inspect the data
+            // console.log(response); // Log the full response object to inspect the data
             // Assuming successful response will contain a token or user data
             if (response.data && response.data.token) {
 
                 navigation.navigate('Home')
 
-                console.log('Login successful:', response.data);
+                // console.log('Login successful:', response.data);
                 setEmail('');
                 setPassword('')
 

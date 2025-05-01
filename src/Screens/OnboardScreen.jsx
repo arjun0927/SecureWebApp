@@ -131,35 +131,36 @@ export default Onboard;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
   },
   headerContainer: {
     flexDirection: 'row',
     width: '100%',
     justifyContent: 'space-between',
     alignItems: 'center',
-    zIndex: 10,
+    paddingTop:15,
+    paddingHorizontal: 20,
   },
   header: {
     flexDirection: 'row',
     gap: 10,
     alignItems: 'center',
+    
   },
   skipButton: {
-    alignSelf: 'flex-start',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
+    // alignSelf: 'flex-start',
+    // paddingVertical: 5,
+    // paddingHorizontal: 10,
   },
   headerText: {
     color: '#1C390E',
     fontFamily: 'Poppins-Medium',
-    fontSize: responsiveFontSize(2),
+    fontSize: responsiveFontSize(2.1),
     lineHeight: responsiveHeight(2),
   },
   sliderContainer: {
     flex: 1,
     marginTop: responsiveHeight(5),
-    marginBottom: responsiveHeight(10),
+    // marginBottom: responsiveHeight(10),
   },
   slideContainer: {
     flex: 1,
@@ -173,21 +174,19 @@ const styles = StyleSheet.create({
     marginBottom: responsiveHeight(5),
   },
   textWrapper: {
-    alignItems: 'center',
+    // alignItems: 'center',
     paddingHorizontal: responsiveWidth(5),
   },
   text: {
     color: '#213623',
     fontFamily: 'Poppins-Medium',
-    fontSize: responsiveFontSize(3.5),
+    fontSize: responsiveFontSize(3.1),
     fontWeight: '500',
-    // textAlign: 'center',
   },
   paginationContainer: {
-    position: 'absolute',
-    bottom: responsiveHeight(2),
-    left: responsiveWidth(5),
+    marginBottom: responsiveHeight(7),
     flexDirection: 'row',
+    marginLeft:20,
     gap: responsiveWidth(5),
   },
   fillBar: {
@@ -203,13 +202,15 @@ const styles = StyleSheet.create({
   },
   btnContainer: {
     width: '100%',
-    marginBottom: responsiveHeight(2),
+    marginBottom: responsiveHeight(3),
   },
   btn: {
-    width: '100%',
+    width: '90%',
     height: responsiveHeight(7),
     backgroundColor: '#335E1F',
     borderRadius: 15,
+    marginHorizontal:20,
+    alignSelf:'center',
     justifyContent: 'center',
     alignItems: 'center',
   },

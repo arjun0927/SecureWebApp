@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { responsiveFontSize } from 'react-native-responsive-dimensions';
+import { responsiveFontSize, responsiveScreenWidth, responsiveWidth } from 'react-native-responsive-dimensions';
 import DeleteSvg from '../assets/Svgs/DeleteSvg';
 import DownArrowSvg from '../assets/Svgs/DownArrowSvg';
 import TopArrowSvg from '../assets/Svgs/TopArrowSvg';
@@ -14,15 +14,17 @@ import { useGlobalContext } from '../Context/GlobalContext';
 const TableCardContent = ({ data, tableAccess }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [deleteTableLoader, setDeleteTableLoader] = useState(false);
 
-  const {showToast} = useGlobalContext();
+  const { showToast, getTables } = useGlobalContext();
 
   const toggleOpen = () => setIsOpen((prev) => !prev);
 
   const navigation = useNavigation();
 
-  const deleteUser = async() => {
+  const deleteSingleTable = async () => {
     try {
+      setDeleteTableLoader(true);
       const token = await AsyncStorage.getItem('token');
       const response = await axios.delete(
         `https://secure.ceoitbox.com/api/deleteTable/${data._id}`,
@@ -33,25 +35,30 @@ const TableCardContent = ({ data, tableAccess }) => {
         }
       );
 
-      // console.log('deleteApi response',response.data)
-      if(response.data){
+      if (response.data) {
+        await getTables();
         showToast({
-          type:'SUCCESS',
-          message:'Table Deleted Successfully'
-        })
+          type: 'SUCCESS',
+          message: 'Table Deleted Successfully'
+        });
+        setModalVisible(false);
       }
-      // console.log('deleteApi response',data._id)
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error deleting table:', error);
+    } finally {
+      setDeleteTableLoader(false);
     }
-  }
+  };
+
 
   return (
-    <View>
-      <TouchableOpacity onPress={() => navigation.navigate('AllTableData', { id: data?._id, tableAccess: tableAccess, tableName: data?.tableName })}>
+    <View style={{ flex: 1 }}>
+      <TouchableOpacity onPress={toggleOpen}>
         <View style={[styles.header]}>
           <View style={styles.headerLeft}>
-            <Text style={styles.title}>{data?.tableName}</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('AllTableData', { id: data?._id, tableAccess: tableAccess, tableName: data?.tableName })}>
+              <Text numberOfLines={1} ellipsizeMode='tail' style={styles.title}>{data?.tableName}</Text>
+            </TouchableOpacity>
           </View>
           <View style={styles.headerRight}>
             <TouchableOpacity
@@ -60,23 +67,24 @@ const TableCardContent = ({ data, tableAccess }) => {
             >
               <DeleteSvg />
             </TouchableOpacity>
-            <TouchableOpacity onPress={toggleOpen} style={styles.toggleButton}>
+            <View style={styles.toggleButton}>
               {isOpen ? <DownArrowSvg /> : <TopArrowSvg />}
-            </TouchableOpacity>
+            </View>
           </View>
         </View>
       </TouchableOpacity>
+
 
       {isOpen && (
         <View>
           <View style={styles.headerOpen}></View>
           <View style={styles.dataRow}>
-            <Text style={styles.rowLabel}>Tab Name</Text>
+            <Text numberOfLines={1} ellipsizeMode='tail' style={styles.rowLabel}>Tab Name</Text>
             <Text style={styles.rowValue}>{data?.spreadsheetsName}</Text>
           </View>
           <View style={[styles.dataRow, styles.noBorder]}>
             <Text style={styles.rowLabel}>Unique Field</Text>
-            <Text style={styles.rowValue}>{data?.uniqueField}</Text>
+            <Text numberOfLines={1} ellipsizeMode='tail' style={styles.rowValue}>{data?.uniqueField}</Text>
           </View>
         </View>
       )}
@@ -84,8 +92,10 @@ const TableCardContent = ({ data, tableAccess }) => {
         <DeleteModal
           modalVisible={modalVisible}
           setModalVisible={setModalVisible}
-          handleDelete={() => deleteUser()}
+          handleDelete={() => deleteSingleTable()}
           handleCancel={() => setModalVisible(false)}
+          setDeleteTableLoader={setDeleteTableLoader}
+          deleteTableLoader={deleteTableLoader}
         />
       )}
     </View>
@@ -95,18 +105,8 @@ const TableCardContent = ({ data, tableAccess }) => {
 export default TableCardContent;
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: 20,
-  },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    elevation: 3,
-    marginBottom: 20,
-  },
   header: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -119,18 +119,22 @@ const styles = StyleSheet.create({
     borderColor: '#BDC3D4',
   },
   headerLeft: {
+    width: '80%',
     flexDirection: 'row',
     alignItems: 'center',
+    // backgroundColor:'red',
     gap: 8,
   },
   headerRight: {
+    width: '20%',
     flexDirection: 'row',
     alignItems: 'center',
+    // backgroundColor:'green',
     gap: 5,
   },
   title: {
-    fontFamily: 'Poppins-Regular',
-    fontSize: 18,
+    fontFamily: 'Montserrat-Medium',
+    fontSize: responsiveFontSize(1.9),
     color: 'black',
     lineHeight: 32,
   },
@@ -162,14 +166,12 @@ const styles = StyleSheet.create({
     width: '50%',
     color: '#222327',
     fontSize: responsiveFontSize(1.7),
-    fontFamily: 'Poppins',
-    fontWeight: '400',
+    fontFamily: 'Poppins-Regular',
   },
   rowValue: {
     flex: 1,
     color: '#578356',
     fontSize: responsiveFontSize(1.5),
-    fontFamily: 'Poppins',
-    fontWeight: '400',
+    fontFamily: 'Poppins-Regular',
   },
 });

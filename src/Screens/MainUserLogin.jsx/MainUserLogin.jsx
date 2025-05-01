@@ -6,11 +6,11 @@ import EmailSvg from '../../assets/Svgs/EmailSvg';
 import {
     responsiveFontSize,
     responsiveHeight,
+    responsiveWidth,
 } from 'react-native-responsive-dimensions';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Feather from 'react-native-vector-icons/Feather';
 import axios from 'axios';
-import CircleCheckBoxSvg from '../../assets/Svgs/CircleCheckBoxSvg';
 import Circle from '../../assets/Svgs/Circle';
 import RadioSelectedCheckbox from '../../assets/Svgs/RadioSelectedCheckbox';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,10 +21,10 @@ const MainUserLogin = ({ navigation }) => {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
     const [rememberMe, setRememberMe] = useState(false);
 
     const { getDataByToken, showToast } = useGlobalContext()
+
 
     useEffect(() => {
         const checkToken = async () => {
@@ -49,26 +49,41 @@ const MainUserLogin = ({ navigation }) => {
     // Handle sign-in logic with API call
     const handleSignIn = async () => {
         if (!isFormValid) return;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email.trim()) {
+            showToast({
+                type: 'ERROR',
+                message: 'Please enter your email',
+            });
+            return;
+        }
+
+        if (!emailRegex.test(email)) {
+            showToast({
+                type: 'ERROR',
+                message: 'Please enter a valid email address',
+            });
+            return;
+        }
 
         setIsLoading(true);
-        setError(null);
 
         try {
             const response = await axios.post('https://secure.ceoitbox.com/api/signin', {
                 email,
                 password,
             });
-            // console.log(response); 
-            // console.log(response.data);
-            // console.log('login User Id', response.data.body._id);
-            await AsyncStorage.setItem('userId', response.data.body._id);
-
-            const token = response.data.token;
-            // console.log('Token:', token);
-            await AsyncStorage.setItem('token', token);
 
 
             if (response.data && response.data.token) {
+                // console.log(response); 
+                // console.log(response.data);
+                // console.log('login User Id', response.data.body._id);
+                await AsyncStorage.setItem('userId', response.data.body._id);
+
+                const token = response.data.token;
+                // console.log('Token:', token);
+                await AsyncStorage.setItem('token', token);
 
                 showToast({
                     type: 'SUCCESS',
@@ -85,7 +100,6 @@ const MainUserLogin = ({ navigation }) => {
                     type: 'ERROR',
                     message: 'Login failed. Please check your credentials'
                 })
-                // setError('Login failed. Please check your credentials.');
             }
         } catch (err) {
             console.error(err);
@@ -93,7 +107,6 @@ const MainUserLogin = ({ navigation }) => {
                 type: 'ERROR',
                 message: 'Failed to sign in. Please try again'
             })
-            // setError('Failed to sign in. Please try again.');
         } finally {
             setIsLoading(false);
         }
@@ -102,7 +115,7 @@ const MainUserLogin = ({ navigation }) => {
 
     return (
         <KeyboardAvoidingView
-        style={{flex:1}}
+            style={{ flex: 1 }}
             behavior={Platform.OS === 'android' ? 'padding' : 'padding'}
         >
             <View style={styles.container}>
@@ -115,19 +128,20 @@ const MainUserLogin = ({ navigation }) => {
                 </View>
 
                 <View style={styles.signIn}>
-                    <MaterialIcons name={'login'} size={25} color={'black'} />
+                    <MaterialIcons name={'login'} size={responsiveFontSize(2.7)} color={'black'} />
                     <Text style={styles.signInText}>Sign In</Text>
                 </View>
 
                 <View style={styles.inputContainer}>
-                    {/* Email Input */}
                     <View style={styles.inputWrapper}>
                         <EmailSvg style={styles.icon} />
                         <RNTextInput
                             style={styles.textInput}
                             placeholder="Email ID*"
+                            placeholderTextColor={'#222327'}
                             value={email}
                             onChangeText={setEmail}
+                            keyboardType='email-address'
                         />
                     </View>
 
@@ -137,15 +151,17 @@ const MainUserLogin = ({ navigation }) => {
                         <RNTextInput
                             style={styles.textInput}
                             placeholder="Password*"
+                            placeholderTextColor={'#222327'}
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry={!showPassword}
+                            keyboardType='default'
                         />
                         <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.togglePassword}>
                             {showPassword ? (
-                                <Feather name="eye" size={18} color="gray" />
+                                <Feather name="eye" size={18} color="222327" />
                             ) : (
-                                <Feather name="eye-off" size={18} color="gray" />
+                                <Feather name="eye-off" size={18} color="222327" />
                             )}
                         </TouchableOpacity>
                     </View>
@@ -178,15 +194,15 @@ const MainUserLogin = ({ navigation }) => {
                 </View>
             } */}
 
-                <TouchableOpacity onPress={handleSignIn} disabled={isLoading}>
+                <TouchableOpacity onPress={handleSignIn} disabled={!isFormValid}  >
                     <View
                         style={[
                             styles.nextBtn,
-                            { opacity: isFormValid && !isLoading ? 1 : 0.5 },
+                            { opacity: isFormValid ? 1 : 0.5 },
                         ]}
                     >
                         {isLoading ? (
-                            <Text style={styles.nextBtnText}><ActivityIndicator size={'small'} color={'green'} /> </Text>
+                            <Text style={styles.nextBtnText}><ActivityIndicator size={'small'} color={'#FFF'} /> </Text>
                         ) : (
                             <>
                                 <MaterialIcons name={'login'} size={20} color={'white'} />
@@ -208,32 +224,34 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#FEFEFF',
-        padding: 20,
     },
     header: {
         alignSelf: 'flex-end',
+        marginTop: 20,
+        marginHorizontal: 20,
     },
     textContainer: {
-        marginTop: 10,
+        marginLeft: 20,
     },
     text1: {
-        fontSize: responsiveFontSize(4),
+        fontSize: responsiveFontSize(3.5),
         color: '#222327',
-        fontWeight: '600',
+        fontFamily: 'Poppins-SemiBold'
     },
     text2: {
         fontSize: responsiveFontSize(2.1),
         color: '#61A443',
-        fontWeight: '500',
+        fontFamily: 'Montserrat-Medium',
         lineHeight: 22.05,
     },
     inputContainer: {
-        // marginTop: responsiveHeight(5),
+        width: responsiveWidth(90),
+        alignSelf: 'center'
     },
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 15,
+        marginBottom: responsiveHeight(1.6),
         borderWidth: 0.6,
         borderColor: '#61A443',
         borderRadius: 10,
@@ -241,69 +259,64 @@ const styles = StyleSheet.create({
     },
     textInput: {
         flex: 1,
-        height: 50,
+        color:'#222327',
+        minHeight:responsiveHeight(5),
         paddingLeft: 10,
-        fontSize: 18,
+        fontSize: responsiveFontSize(1.7),
+        fontFamily: 'Poppins-Regular'
     },
     icon: {
-        width: 20,
-        height: 20,
+        // width: 200,
+        // height: 200,
     },
     togglePassword: {
-        color: 'gray',
         paddingRight: 10,
     },
     signIn: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 30,
+        marginBottom: responsiveHeight(2),
+        marginLeft: 20,
         marginTop: responsiveHeight(6),
     },
     signInText: {
-        fontSize: responsiveFontSize(3),
+        fontSize: responsiveFontSize(2.7),
         color: 'black',
-        fontWeight: '500',
+        fontFamily: 'Poppins-Medium',
         marginLeft: 10,
     },
     nextBtn: {
-        width: '100%',
+        width: '90%',
         height: responsiveHeight(6.5),
         backgroundColor: '#4D8733',
-        borderRadius: 20,
+        borderRadius: responsiveFontSize(2),
         justifyContent: 'center',
         alignItems: 'center',
         flexDirection: 'row',
         alignSelf: 'center',
-        marginTop: 60,
+        marginTop: responsiveHeight(6),
         gap: 10,
     },
     nextBtnText: {
         fontSize: responsiveFontSize(2.1),
         color: 'white',
-        fontWeight: '500',
-        textAlign: 'center',
-    },
-    errorText: {
-        color: 'red',
-        fontSize: responsiveFontSize(2),
-        marginTop: 10,
+        fontFamily: 'Poppins-Medium',
         textAlign: 'center',
     },
     otpContainer: {
         borderWidth: 1,
         borderColor: '#61A443',
-        width: '42%',
+        width: '35%',
         justifyContent: 'center',
         alignItems: 'center',
-        borderRadius: 30,
-        paddingVertical: 7,
-        paddingHorizontal: 16,
+        borderRadius: responsiveFontSize(3),
+        paddingVertical: responsiveHeight(0.7),
         marginTop: 10,
+        marginLeft: responsiveHeight(2)
     },
     otpContainerText: {
         color: '#222327',
-        fontSize: responsiveFontSize(1.8),
-        // fontFamily:'Poppins',
-        fontWeight: '400',
+        fontSize: responsiveFontSize(1.6),
+        fontFamily: 'Poppins-Regular',
     }
 });

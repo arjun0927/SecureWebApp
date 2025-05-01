@@ -4,16 +4,12 @@ import { ActivityIndicator, Text } from 'react-native-paper';
 import { responsiveFontSize, responsiveWidth } from 'react-native-responsive-dimensions';
 import NoDataSvg2 from '../../assets/Svgs/NoDataSvg2';
 
-const DeleteModal = ({ modalVisible, setModalVisible, handleDelete, handleCancel  }) => {
+const DeleteModal = ({ modalVisible, setModalVisible, handleDelete, handleCancel , deleteTableLoader }) => {
 
   const hideModal = () => setModalVisible(false);
 
-  // console.log('isLoading',isLoading)
-
   const handleConfirmDelete = () => {
     handleDelete();
-    // console.log('delete Response',response);
-    hideModal();
   };
 
   return (
@@ -43,7 +39,13 @@ const DeleteModal = ({ modalVisible, setModalVisible, handleDelete, handleCancel
               </TouchableOpacity>
               <TouchableOpacity onPress={handleConfirmDelete}>
                 <View style={styles.btnContainer2}>
-                  <Text style={styles.btnContainer2Text}>Yes! Delete It</Text>
+                  {
+                    deleteTableLoader ? (
+                      <ActivityIndicator size={'small'} color='white'  />
+                    ) : (
+                      <Text style={styles.btnContainer2Text}>Yes! Delete It</Text>
+                    )
+                  }
                 </View>
               </TouchableOpacity>
             </View>
@@ -62,9 +64,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9f9f9',
   },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: '#FFF',
     padding: 25,
-    marginHorizontal: 40,
     borderRadius: 30,
     width: responsiveWidth(90),
     elevation: 10,
@@ -73,7 +74,8 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',  // Dim background effect
+    backgroundColor: 'rgba(0, 0, 0, 0.2)', 
+    
   },
   iconBox: {
     alignItems: 'center',
@@ -84,19 +86,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: responsiveFontSize(2.7),
     color: '#222327',
-    fontFamily: 'Poppins',
-    fontWeight: '400',
+    fontFamily: 'Poppins-Medium',
   },
   modalMidTextContainer: {
     width: responsiveWidth(55),
     alignSelf: 'center',
-    marginTop: 20,
+    marginTop: 10,
   },
   modalMidText: {
     fontSize: responsiveFontSize(1.7),
     textAlign: 'center',
     color: '#767A8D',
-    fontWeight: '400',
+    fontFamily:'Poppins-Medium'
   },
   btnContainer: {
     marginTop: 25,
@@ -118,7 +119,8 @@ const styles = StyleSheet.create({
   btnContainer1Text: {
     color: '#767A8D',
     textAlign: 'center',
-    fontSize: 16,
+    fontSize: responsiveFontSize(1.7),
+    fontFamily:'Poppins-Medium'
   },
   btnContainer2: {
     width: responsiveWidth(30),
@@ -131,6 +133,7 @@ const styles = StyleSheet.create({
   },
   btnContainer2Text: {
     color: 'white',
-    fontSize: 16,
+    fontSize: responsiveFontSize(1.7),
+    fontFamily:'Poppins-Medium'
   }
 });

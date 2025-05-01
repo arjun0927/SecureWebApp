@@ -82,18 +82,18 @@ export default UserThreeDotsModal;
 const styles = StyleSheet.create({
 	backdrop: {
 	  flex: 1,
-	  backgroundColor: 'rgba(0, 0, 0, 0.1)',
-	  alignItems: 'flex-end', // Center the modal horizontally
+	//   backgroundColor: 'rgba(0, 0, 0, 0.6)',
+	  alignItems: 'flex-end', 
 	  paddingTop:'21%',
-	  paddingRight:'5%'
+	  paddingRight:20,
 	},
 	modalContent: {
 	  borderWidth: 1,
 	  borderColor: '#E1EADE',
 	  backgroundColor: '#FFFFFF',
-	  borderRadius: 10,
+	  borderRadius: 14,
 	  padding: 15,
-	  elevation: 10,
+	  elevation: 1,
 	  width: '55%',
 	},
 	optionsContainer: {
@@ -105,10 +105,9 @@ const styles = StyleSheet.create({
 	  alignItems: 'center',
 	},
 	optionText: {
-	  fontSize: responsiveFontSize(2),
+	  fontSize: responsiveFontSize(1.8),
 	  color: 'black',
-	  fontFamily: 'Poppins',
-	  fontWeight: '400',
+	  fontFamily: 'Poppins-Regular',
 	},
   });
   

@@ -8,18 +8,17 @@ import { useGlobalContext } from '../../Context/GlobalContext';
 import axios from 'axios';
 
 const UserTables = ({ navigation }) => {
-  const [modalVisible, setModalVisible] = useState(false);
   const [tableAccess, setTableAccess] = useState(null);
   const { getDataByToken, getTables, data, setData } = useGlobalContext();
 
-  const handleLogout = () => {
-    // console.log('Logging out...');
-    setModalVisible(false); // Hide the modal after logging out
-  };
+  // const handleLogout = () => {
+  //   // console.log('Logging out...');
+  //   setModalVisible(false); // Hide the modal after logging out
+  // };
 
-  const handleCancel = () => {
-    setModalVisible(false);
-  };
+  // const handleCancel = () => {
+  //   setModalVisible(false);
+  // };
   // response.data.forEach((item, index) => {
   //     console.log(`Entry for TableData ${index + 1}:`);
   //     console.log(JSON.stringify(item, null, 2)); // Indentation of 2 spaces
@@ -63,7 +62,6 @@ const UserTables = ({ navigation }) => {
                 <View style={styles.card}>
                   <UserTableCard
                     data={item}
-                    setModalVisible={setModalVisible}
                     tableAccess={matchingTableAccess?.userFieldSettings}
                   />
                 </View>
@@ -77,14 +75,14 @@ const UserTables = ({ navigation }) => {
 
 
 
-      {modalVisible && (
+      {/* {modalVisible && (
         <LogOut
           modalVisible={modalVisible}
           setModalVisible={setModalVisible}
           handleLogout={handleLogout}
           handleCancel={handleCancel}
         />
-      )}
+      )}  */}
     </View>
   );
 };

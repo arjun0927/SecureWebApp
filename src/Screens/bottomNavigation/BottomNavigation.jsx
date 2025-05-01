@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Tables from './Tables';
 import Users from './Users';
 import CustomTabBarButton from './CustomTabBarButton';
+import { responsiveHeight } from 'react-native-responsive-dimensions';
 
 const Tab = createBottomTabNavigator();
 
@@ -32,7 +33,7 @@ export default TabNavigator;
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: 70,
+    height: responsiveHeight(7),
     borderTopLeftRadius: 15,
     borderTopRightRadius: 15,
     elevation: 10,

@@ -1,7 +1,10 @@
 import React, { useEffect, useContext, createContext, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import Toast from 'react-native-toast-message';
+import Toast, { BaseToast } from 'react-native-toast-message';
+import { responsiveFontSize } from 'react-native-responsive-dimensions';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { View } from 'react-native';
 
 // Create Context
 const GlobalContext = createContext();
@@ -64,18 +67,55 @@ export const GlobalProvider = ({ children }) => {
   };
 
   const showToast = ({ type, message }) => {
-    if (type === 'SUCCESS' || type === 'ERROR' || type === 'INFO' || type === 'WARNING') {
-      Toast.show({
-        type: type.toLowerCase(),
-        position: 'top',
-        text1: message,
-        text1Style: { color: 'black', fontSize: 18, fontWeight: 'bold' },
-        visibilityTime: 3000,
-        autoHide: true,
-      });
-    } else {
-      console.warn('Invalid toast type passed');
-    }
+    Toast.show({
+      type: type.toLowerCase(),
+      position: 'top',
+      text1: message,
+      visibilityTime: 3000,
+      autoHide: true,
+    });
+  };
+
+  const toastConfig = {
+    success: ({ text1 }) => (
+      <BaseToast
+        style={{ borderLeftColor: 'green', backgroundColor: '#FFF' }}
+        contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}
+        text1={text1}
+        text1Style={{ color: 'black', fontSize: responsiveFontSize(2.1), fontFamily: 'Poppins-Medium' }}
+        renderLeadingIcon={() => (
+          <View style={{ alignItems: 'center', flexDirection: 'row', marginLeft: 20 }}>
+            <MaterialIcons name="check-circle" size={25} color="green" />
+          </View>
+        )}
+      />
+    ),
+    error: ({ text1 }) => (
+      <BaseToast
+        style={{ borderLeftColor: 'red', backgroundColor: '#FFF' }}
+        contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}
+        text1={text1}
+        text1Style={{ color: 'black', fontSize: responsiveFontSize(2.1), fontFamily: 'Poppins-Medium' }}
+        renderLeadingIcon={() => (
+          <View style={{ alignItems: 'center', flexDirection: 'row', marginLeft: 20 }}>
+            <MaterialIcons name="error" size={20} color="red" />
+          </View>
+        )}
+      />
+    ),
+    warning: ({ text1 }) => (
+      <BaseToast
+        style={{ borderLeftColor: 'orange', backgroundColor: '#FFF' }}
+        contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}
+        text1={text1}
+        text1Style={{ color: 'black', fontSize: responsiveFontSize(2.1), fontWeight: 'bold' }}
+        renderLeadingIcon={() => (
+          <View style={{ alignItems: 'center', flexDirection: 'row', marginLeft: 20 }}>
+            <MaterialIcons name="warning" size={20} color="orange" />
+          </View>
+        )}
+      />
+    ),
   };
 
   const getTables = async () => {
@@ -93,7 +133,7 @@ export const GlobalProvider = ({ children }) => {
           },
         }
       );
-      // console.log('response',response.data);
+      console.log('response',response.data);
 
       if (response.data) {
         setData(response.data);
@@ -165,7 +205,7 @@ export const GlobalProvider = ({ children }) => {
   return (
     <GlobalContext.Provider value={value}>
       {children}
-      <Toast ref={(ref) => Toast.setRef(ref)} />
+      <Toast config={toastConfig} />
     </GlobalContext.Provider>
   );
 };

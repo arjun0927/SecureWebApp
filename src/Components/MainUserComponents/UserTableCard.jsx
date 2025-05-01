@@ -5,14 +5,50 @@ import DeleteSvg from '../../assets/Svgs/DeleteSvg';
 import DownArrowSvg from '../../assets/Svgs/DownArrowSvg';
 import TopArrowSvg from '../../assets/Svgs/TopArrowSvg';
 import { useNavigation } from '@react-navigation/native';
+import DeleteModal from './DeleteModal';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useGlobalContext } from '../../Context/GlobalContext';
 
 
-const UserTableCard = ({ data, setModalVisible, tableAccess }) => {
+const UserTableCard = ({ data, tableAccess }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [deleteTableLoader, setDeleteTableLoader] = useState(false);
+  const {getTables, showToast} = useGlobalContext()
  
   const toggleOpen = () => setIsOpen((prev) => !prev);
 
   const navigation = useNavigation();
+
+  const deleteSingleTable = async () => {
+    try {
+      setDeleteTableLoader(true);
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.delete(
+        `https://secure.ceoitbox.com/api/deleteTable/${data._id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      // console.log('delete Response ', response.data)
+  
+      if (response.data) {
+        await getTables();
+        showToast({
+          type: 'SUCCESS',
+          message: 'Table Deleted Successfully'
+        });
+        setModalVisible(false);
+      }
+    } catch (error) {
+      console.error('Error deleting table:', error);
+    } finally {
+      setDeleteTableLoader(false);
+    }
+  };
 
   return (
     <View>
@@ -47,6 +83,16 @@ const UserTableCard = ({ data, setModalVisible, tableAccess }) => {
             <Text style={styles.rowValue}>{data?.uniqueField}</Text>
           </View>
         </View>
+      )}
+      {modalVisible && (
+        <DeleteModal
+          modalVisible={modalVisible}
+          setModalVisible={setModalVisible}
+          handleDelete={() => deleteSingleTable()}
+          handleCancel={() => setModalVisible(false)}
+          setDeleteTableLoader={setDeleteTableLoader}
+          deleteTableLoader={deleteTableLoader}
+        />
       )}
     </View>
   );

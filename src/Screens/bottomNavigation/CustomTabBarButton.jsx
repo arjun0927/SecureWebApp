@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity } from 'react-native';
 import UserIconSvg from '../../assets/Svgs/UserIconSvg'; // Verify this import
 import TableIcon from '../../assets/Svgs/TableIcon'; // Import TableIcon
+import { responsiveFontSize, responsiveHeight } from 'react-native-responsive-dimensions';
 
 const CustomTabBarButton = (props) => {
   const RouteName = props.currentRoute || ''; // Use `currentRoute` directly
@@ -22,6 +23,7 @@ const CustomTabBarButton = (props) => {
     <TouchableOpacity
       {...props}
       style={[styles.btn, focused && styles.activeBtn]}
+      activeOpacity={0.7}
     >
       {/* Render the icon based on route */}
       {Icons[RouteName] ? Icons[RouteName](focused) : null}
@@ -36,7 +38,7 @@ export default CustomTabBarButton;
 
 const styles = StyleSheet.create({
   btn: {
-    height: 48, // Set height to 44 for the button containing text and icon
+    height: responsiveHeight(5), 
     borderWidth: 1,
     borderColor: '#E5E5E5',
     marginHorizontal: 10,
@@ -51,8 +53,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#2f3033', // Background when active
   },
   tabText: {
-    fontSize: 17,
-    fontFamily: 'Poppins-Regular',
+    fontSize: responsiveFontSize(1.8),
+    fontFamily: 'Poppins-Medium',
     marginLeft: 10,
   },
 });

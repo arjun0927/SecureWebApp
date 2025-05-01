@@ -5,7 +5,6 @@ import {
     responsiveFontSize,
     responsiveHeight,
 } from 'react-native-responsive-dimensions';
-import SignInSvg from '../assets/Svgs/SignInSvg';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -118,14 +117,16 @@ export default AdminLogin;
 
 const styles = StyleSheet.create({
     backgroundImage: {
-        // flex: 1,
+        flex: 1,
         // width: '100%',
         // height: '30%',
         justifyContent: 'flex-start',
         zIndex: 1,
     },
     container: {
-        height: '100%',
+        // height: '60%',
+        backgroundColor:'#FEFEFF',
+        flex:1,
     },
     header: {
         alignSelf: 'flex-end',
@@ -133,32 +134,31 @@ const styles = StyleSheet.create({
         marginRight: 20,
     },
     textContainer: {
-        marginTop: 20,
+        // marginTop: 20,
         marginHorizontal: 20,
     },
     text1: {
-        fontSize: responsiveFontSize(4),
+        fontSize: responsiveFontSize(3.5),
         color: '#222327',
-        fontWeight: 'bold',
+        fontFamily:'Poppins-SemiBold'
     },
     text2: {
         fontSize: responsiveFontSize(2.1),
         color: '#61A443',
-        fontWeight: 'bold',
+        fontFamily:'Montserrat-SemiBold',
         lineHeight: 22.05,
     },
     adminSignIn: {
         alignSelf: 'center',
-        marginTop: responsiveHeight(8),
+        marginTop: responsiveHeight(10),
     },
     adminSignInText: {
         color: '#222327',
-        fontWeight: '500',
-        fontSize: responsiveFontSize(3),
-        fontFamily: 'Poppins',
+        fontSize: responsiveFontSize(2.7),
+        fontFamily: 'Poppins-Medium',
     },
     btn: {
-        width: '70%',
+        width: '65%',
         paddingVertical: responsiveHeight(2),
         borderColor: '#111220',
         borderWidth: 1,
@@ -169,18 +169,18 @@ const styles = StyleSheet.create({
         gap: 10,
         backgroundColor: '#FEFEFF',
         alignSelf: 'center',
-        marginTop: 30,
+        marginTop: responsiveHeight(1.5),
     },
     googleImg: {
-        width: 24,
-        height: 24,
+        width: responsiveHeight(2.4),
+        height: responsiveHeight(2.4),
         resizeMode: 'contain',
     },
     btnText: {
-        fontSize: responsiveFontSize(2.1),
+        fontSize: responsiveFontSize(1.9),
         color: '#4D8733',
-        fontWeight: '500',
-        letterSpacing: 0.3,
+        fontFamily:'Poppins-Medium',
+        // letterSpacing: 0.3,
     },
     horizontalLine: {
         marginTop: responsiveHeight(10),

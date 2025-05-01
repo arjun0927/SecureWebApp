@@ -36,7 +36,6 @@ const TableScreen = ({navigation}) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.leftHeader}>
           <Image
@@ -133,7 +132,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   mainContainer: {
-    flex: 1,
+    height:'89%',
     backgroundColor: '#FFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
