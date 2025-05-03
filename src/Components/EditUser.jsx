@@ -17,6 +17,7 @@ import { ActivityIndicator, TextInput } from 'react-native-paper';
 import { useGlobalContext } from '../Context/GlobalContext';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Backhandler from './Backhandler';
 
 const EditUser = ({ route }) => {
 	const [name, setName] = useState('');
@@ -26,26 +27,71 @@ const EditUser = ({ route }) => {
 	const [passwordVisible, setPasswordVisible] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [selectedTables, setSelectedTables] = useState([]);
+	
+	// Track initial values for change detection
+	const [initialValues, setInitialValues] = useState({
+		name: '',
+		email: '',
+		password: '',
+		selectedTables: []
+	});
+	
+	// Track if changes have been made
+	const [hasChanges, setHasChanges] = useState(false);
 
-	const { getTables, data, showToast , getUsers } = useGlobalContext();
+	const { getTables, data, showToast, getUsers } = useGlobalContext();
 	const navigation = useNavigation();
 	const { editData } = route.params;
 
-	// console.log('userData',editData.tablesAccess[0].tableName)
+	Backhandler();
+
 	const _id = editData?._id;
 
-
+	// Set initial values from editData
 	useEffect(() => {
-		setName(editData?.userName || '');
-		setEmail(editData?.email || '');
-		setPassword(editData?.password || '');
+		const initialName = editData?.userName || '';
+		const initialEmail = editData?.email || '';
+		const initialPassword = editData?.password || '';
 		const initialSelectedTables = editData?.tablesAccess?.map((table) => ({
 			tableName: table.tableName,
 			_id: table._id,
 			fieldSettings: table.userFieldSettings,
-		}));
-		setSelectedTables(initialSelectedTables || []);
+		})) || [];
+		
+		// Set form values
+		setName(initialName);
+		setEmail(initialEmail);
+		setPassword(initialPassword);
+		setSelectedTables(initialSelectedTables);
+		
+		// Store initial values for comparison
+		setInitialValues({
+			name: initialName,
+			email: initialEmail,
+			password: initialPassword,
+			selectedTables: initialSelectedTables
+		});
 	}, [editData]);
+	
+	// Check for changes
+	useEffect(() => {
+		checkForChanges();
+	}, [name, email, password, selectedTables]);
+	
+	// Function to check if any values have changed
+	const checkForChanges = () => {
+		const nameChanged = name !== initialValues.name;
+		const emailChanged = email !== initialValues.email;
+		const passwordChanged = password !== initialValues.password;
+		
+		// Check if tables selection has changed
+		const tablesChanged = selectedTables.length !== initialValues.selectedTables.length ||
+			!selectedTables.every(table => 
+				initialValues.selectedTables.some(t => t._id === table._id)
+			);
+		
+		setHasChanges(nameChanged || emailChanged || passwordChanged || tablesChanged);
+	};
 
 	useEffect(() => {
 		const fetchTables = async () => {
@@ -55,30 +101,26 @@ const EditUser = ({ route }) => {
 	}, []);
 
 	const handleTableSelect = (table) => {
-
-		if (selectedTables.includes(table)) {
-			setSelectedTables((prev) => prev.filter((t) => t !== table));
-			setIsAccordionOpen(false)
+		if (selectedTables.some(t => t._id === table._id)) {
+			setSelectedTables((prev) => prev.filter((t) => t._id !== table._id));
+			setIsAccordionOpen(false);
 		} else {
 			setSelectedTables((prev) => [...prev, table]);
-			setIsAccordionOpen(false)
+			setIsAccordionOpen(false);
 		}
 	};
-
-	// const handleClearSelectedTable = (table) => {
-	// 	setSelectedTables((prevState) => prevState.filter((item) => item !== table));
-	// };
 
 	const handleSave = async () => {
 		if (!selectedTables.length) {
 			Alert.alert('Error', 'Please select at least one table before saving.');
 			return;
 		}
-
 		setIsLoading(true);
 		try {
 			const userId = await AsyncStorage.getItem('userId');
-			const token = await AsyncStorage.getItem('token');
+			const data = await AsyncStorage.getItem('loginInfo');
+			const parsedData = JSON.parse(data);
+			const token = parsedData.token;
 
 			// Prepare `tablesAccess` entries for each selected table
 			const tablesAccess = selectedTables.map((table) => {
@@ -130,8 +172,6 @@ const EditUser = ({ route }) => {
 					{ day: 'SAT', accessTime: [['09:00', '18:00']], enabled: true },
 				],
 			};
-			console.log('tableAccess', tablesAccess)
-			console.log('sendData', sendData)
 
 			const response = await axios.put(
 				`https://secure.ceoitbox.com/api/users/${_id}`,
@@ -144,18 +184,17 @@ const EditUser = ({ route }) => {
 			if (response.data) {
 				await getUsers();
 				showToast({ type: 'SUCCESS', message: 'User Updated Successfully' });
-				// console.log(response.data)
 				navigation.goBack();
 			}
 		} catch (error) {
 			console.error('Error saving user:', error);
-			//   Alert.alert('Error', 'Failed to save user. Please try again.');
 		} finally {
 			setIsLoading(false);
 		}
 	};
 
-	const isFormValid = name && email && password;
+	// Check if form is valid AND changes have been made
+	const isFormValid = name && email && password && hasChanges;
 
 	return (
 		<KeyboardAvoidingView
@@ -236,7 +275,7 @@ const EditUser = ({ route }) => {
 													<Text style={styles.selectedTableText}>{table.tableName}</Text>
 													<TouchableOpacity
 														onPress={() => {
-															const updatedTables = selectedTables.filter((t) => t !== table);
+															const updatedTables = selectedTables.filter((t) => t._id !== table._id);
 															setSelectedTables(updatedTables);
 														}}
 														style={styles.clearButton}
@@ -249,8 +288,6 @@ const EditUser = ({ route }) => {
 											<Text style={styles.accordionHeaderText}>Select Tables</Text>
 										)}
 									</View>
-
-
 								</Text>
 								<Feather
 									name={isAccordionOpen ? 'chevron-down' : 'chevron-right'}
@@ -284,7 +321,7 @@ const EditUser = ({ route }) => {
 											<Text
 												style={[
 													styles.accordionItemText,
-													selectedTables.includes(item) && styles.selectedItemText,
+													selectedTables.some(t => t._id === item._id) && styles.selectedItemText,
 												]}
 											>
 												{item.tableName}
@@ -302,7 +339,13 @@ const EditUser = ({ route }) => {
 					<TouchableOpacity
 						onPress={isFormValid && !isLoading ? handleSave : null}
 						disabled={!isFormValid || isLoading}
-						style={[styles.saveBtn, { opacity: isFormValid && !isLoading ? 1 : 0.5 }]}
+						style={[
+							styles.saveBtn, 
+							{ 
+								opacity: isFormValid && !isLoading ? 1 : 0.5,
+								backgroundColor: hasChanges ? '#4D8733' : '#4D8733' 
+							}
+						]}
 					>
 						<Text style={styles.saveBtnText}>
 							{isLoading ? <ActivityIndicator size={25} color='white' /> : 'Save'}
@@ -407,6 +450,10 @@ const styles = StyleSheet.create({
 	accordionItemText: {
 		fontSize: 16,
 	},
+	selectedItemText: {
+		color: '#4D8733',
+		fontWeight: '500',
+	},
 	noBorder: {
 		borderWidth: 0,
 	},
@@ -430,7 +477,6 @@ const styles = StyleSheet.create({
 		fontWeight: '600',
 	},
 	selectedTableContainer: {
-		// paddingVertical: 2,
 		flexDirection: 'row',
 		gap: 10,
 		flex: 1,
@@ -455,4 +501,3 @@ const styles = StyleSheet.create({
 		// padding: 5,
 	},
 });
-

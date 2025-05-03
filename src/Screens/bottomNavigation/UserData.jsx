@@ -38,7 +38,6 @@ const UserData = () => {
 
       socket.connect();
 
-      // Emit user connection info
       socket.emit("userConnected", {
         userID: loginUser.body._id,
         userName: loginUser.body.userName,

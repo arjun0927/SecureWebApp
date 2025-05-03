@@ -7,12 +7,13 @@ import {
 	ScrollView,
 	KeyboardAvoidingView,
 	Platform,
+	BackHandler,
 } from 'react-native';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
 import { responsiveFontSize } from 'react-native-responsive-dimensions';
-// import { TextInput } from 'react-native-paper';
+
 
 const RaiseTicket = () => {
 	const [name, setName] = useState('');
@@ -21,6 +22,9 @@ const RaiseTicket = () => {
 	const [issueType, setIssueType] = useState('');
 
 	const navigation = useNavigation();
+
+	// Add hardware back button handler
+	
 
 	const handleSave = () => {
 		console.log('Saved');

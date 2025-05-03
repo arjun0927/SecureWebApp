@@ -4,12 +4,13 @@ import { ActivityIndicator, Text } from 'react-native-paper';
 import { responsiveFontSize, responsiveWidth } from 'react-native-responsive-dimensions';
 import NoDataSvg2 from '../../assets/Svgs/NoDataSvg2';
 
-const DeleteModal = ({ modalVisible, setModalVisible, handleDelete, handleCancel , deleteTableLoader }) => {
+const DeleteModal = ({ modalVisible, setModalVisible, handleDelete, handleCancel , deleteLoader }) => {
 
   const hideModal = () => setModalVisible(false);
 
-  const handleConfirmDelete = () => {
-    handleDelete();
+  const handleConfirmDelete = async() => {
+    await handleDelete();
+    hideModal();
   };
 
   return (
@@ -40,7 +41,7 @@ const DeleteModal = ({ modalVisible, setModalVisible, handleDelete, handleCancel
               <TouchableOpacity onPress={handleConfirmDelete}>
                 <View style={styles.btnContainer2}>
                   {
-                    deleteTableLoader ? (
+                    deleteLoader ? (
                       <ActivityIndicator size={'small'} color='white'  />
                     ) : (
                       <Text style={styles.btnContainer2Text}>Yes! Delete It</Text>

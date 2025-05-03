@@ -16,7 +16,8 @@ const GlobalLogOutModal = ({ modalVisible, setModalVisible, handleCancel,onClose
 
 	const logOut = async () => {
 			try {
-				await AsyncStorage.removeItem('token');
+				await AsyncStorage.removeItem('loginInfo');
+				await AsyncStorage.removeItem('loginUser');
 				await AsyncStorage.removeItem('userId');
 				navigation.replace('UserPermission');
 				showToast({
@@ -44,7 +45,6 @@ const GlobalLogOutModal = ({ modalVisible, setModalVisible, handleCancel,onClose
 				<View style={styles.backdrop}>
 					<View style={styles.modalContent}>
 						<View style={styles.iconBox}>
-							{/* <MaterialCommunityIcons name={'alert-circle-outline'} size={60} color={'#4D8733'} /> */}
 							<NoDataSvg2 />
 							<Text style={styles.iconBoxText}>
 								Are You Sure?

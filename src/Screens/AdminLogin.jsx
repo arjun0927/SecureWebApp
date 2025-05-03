@@ -27,13 +27,13 @@ const AdminLogin = ({ navigation }) => {
         try {
             setIsLoading(true);
             await GoogleSignin.hasPlayServices(); // Ensure Play Services are available
-    
+
             const userInfo = await GoogleSignin.signIn(); // Sign in and get user info
             const tokens = await GoogleSignin.getTokens(); // Get access and ID tokens
-    
+
             const email = userInfo.data.user.email; // Extract the user's email
             const idToken = tokens.idToken; // Extract the ID token
-    
+
             if (email && idToken) {
                 const response = await axios.post(
                     'https://secure.ceoitbox.com/api/auth/google/login',
@@ -47,15 +47,23 @@ const AdminLogin = ({ navigation }) => {
                         },
                     }
                 );
-    
-                const userId = response.data.body._id;
-                const token = response.data.token;
-    
-                await AsyncStorage.setItem('loginUser', JSON.stringify(response.data));
-                await AsyncStorage.setItem('userId', userId);
-                await AsyncStorage.setItem('token', token);
-    
+
                 if (response.data) {
+                    const userId = response.data.body._id;
+                    const token = response.data.token;
+                    const role = response?.data?.body?.role;
+
+                    // console.log('admin login role:', role); // Debugging log
+
+                    const loginInfo = {
+                        email: email,
+                        token: token,
+                        role: role,
+                    }
+
+                    await AsyncStorage.setItem('loginUser', JSON.stringify(response.data));
+                    await AsyncStorage.setItem('userId', userId);
+                    await AsyncStorage.setItem('loginInfo', JSON.stringify(loginInfo));
                     setIsLoading(false);
                     showToast({
                         type: 'SUCCESS',
@@ -72,7 +80,7 @@ const AdminLogin = ({ navigation }) => {
             console.error('Google login error:', error);
         }
     };
-    
+
 
 
 
@@ -125,8 +133,8 @@ const styles = StyleSheet.create({
     },
     container: {
         // height: '60%',
-        backgroundColor:'#FEFEFF',
-        flex:1,
+        backgroundColor: '#FEFEFF',
+        flex: 1,
     },
     header: {
         alignSelf: 'flex-end',
@@ -140,12 +148,12 @@ const styles = StyleSheet.create({
     text1: {
         fontSize: responsiveFontSize(3.5),
         color: '#222327',
-        fontFamily:'Poppins-SemiBold'
+        fontFamily: 'Poppins-SemiBold'
     },
     text2: {
         fontSize: responsiveFontSize(2.1),
         color: '#61A443',
-        fontFamily:'Montserrat-SemiBold',
+        fontFamily: 'Montserrat-SemiBold',
         lineHeight: 22.05,
     },
     adminSignIn: {
@@ -179,7 +187,7 @@ const styles = StyleSheet.create({
     btnText: {
         fontSize: responsiveFontSize(1.9),
         color: '#4D8733',
-        fontFamily:'Poppins-Medium',
+        fontFamily: 'Poppins-Medium',
         // letterSpacing: 0.3,
     },
     horizontalLine: {

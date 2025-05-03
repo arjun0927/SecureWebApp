@@ -19,27 +19,21 @@ const CardContent = ({ data , onlineUser}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [duplicateUserModal, setDuplicateUserModal] = useState(false)
   const [modalVisible, setModalVisible] = useState(false);
+  const [deleteLoader, setDeleteLoader] = useState(false);
   const [duplicateUser, setDuplicateUser] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [isBlocked, setIsBlocked] = useState(data.isBlocked);
+  const [isBlocked, setIsBlocked] = useState(data?.blockUser);
   const { showToast , getUsers } = useGlobalContext();
 
   // console.log('onlineUser',onlineUser)
-
-  // console.log('tableAccess',data.tablesAccess)
-  // data.tablesAccess.forEach((item, index) => {
-  //   console.log(`Entry for tableAccess ${index + 1}:`);
-  //   console.log(JSON.stringify(item, null, 2));
-  // });
-  // console.log('data',data)
+  
+  // console.log('blockInfo',data?.blockUser)
 
   const handleDelete = () => {
-    // console.log("Duplicate users deleted");
     setDuplicateUserModal(false);
   };
 
   const handleCancel = () => {
-    // console.log("Delete action canceled");
     setDuplicateUserModal(false);
   };
 
@@ -48,10 +42,14 @@ const CardContent = ({ data , onlineUser}) => {
 
   const deleteUser = async () => {
     try {
-      // setIsLoading(true);
-      const token = await AsyncStorage.getItem('token');
+      setDeleteLoader(true);
+      const loginInfo = await AsyncStorage.getItem('loginInfo');
+      const parsedData = JSON.parse(loginInfo);
+      const token = parsedData?.token;
+      const deleteUserId = data?._id;
+      // console.log('deleteUserId',deleteUserId)
       const response = await axios.delete(
-        ` https://secure.ceoitbox.com/api/users/${data._id}`,
+        ` https://secure.ceoitbox.com/api/users/${deleteUserId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -61,9 +59,8 @@ const CardContent = ({ data , onlineUser}) => {
 
       // console.log('deleteApi response',response.data)
       if (response.data) {
-        // setIsLoading(false)
-
         await getUsers();
+        setDeleteLoader(false);
 
         showToast({
           type: 'SUCCESS',
@@ -91,10 +88,13 @@ const CardContent = ({ data , onlineUser}) => {
   const handleBlockUser = async () => {
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem('token');
+      const login = await AsyncStorage.getItem('loginInfo');
+      const parsedData = JSON.parse(login); 
+      const token = parsedData?.token;
+      // console.log('blockApi token',token)
       const response = await axios.put(
         `https://secure.ceoitbox.com/api/users/${data._id}`,
-        { blockUser: !isBlocked }, // Toggle block status
+        { blockUser: !isBlocked },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -201,10 +201,10 @@ const CardContent = ({ data , onlineUser}) => {
       {modalVisible && (
         <DeleteModal
           modalVisible={modalVisible}
+          deleteLoader={deleteLoader}
           setModalVisible={setModalVisible}
           handleDelete={() => deleteUser()}
           handleCancel={() => setModalVisible(false)}
-        // isLoading={isLoading}
         />
       )}
     </View>

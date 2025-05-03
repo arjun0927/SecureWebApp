@@ -17,6 +17,7 @@ import { ActivityIndicator, TextInput } from 'react-native-paper';
 import axios from 'axios';
 import { useGlobalContext } from '../Context/GlobalContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Backhandler from './Backhandler';
 
 const AddNewUsers = () => {
   const [name, setName] = useState('');
@@ -29,6 +30,8 @@ const AddNewUsers = () => {
 
   const navigation = useNavigation();
   const { getTables, data, showToast, getUsers } = useGlobalContext();
+
+  Backhandler();
 
   useEffect(() => {
     const fetchAccordionData = async () => {
@@ -57,7 +60,9 @@ const AddNewUsers = () => {
     setIsLoading(true);
     try {
       const userId = await AsyncStorage.getItem('userId');
-      const token = await AsyncStorage.getItem('token');
+      const data = await AsyncStorage.getItem('loginInfo');
+      const parsedData = JSON.parse(data);
+      const token = parsedData?.token;
 
       // Prepare `tablesAccess` entries for each selected table
       const tablesAccess = selectedTables.map((table) => {
@@ -119,6 +124,8 @@ const AddNewUsers = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+
+      // console.log('response Add new Users', response.data);
 
       if (response.data) {
         await getUsers();

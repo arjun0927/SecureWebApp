@@ -1,12 +1,10 @@
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import React, { useState } from 'react';
-import SearchSvg from '../../assets/Svgs/SearchSvg';
 import ThreeDotsSvg from '../../assets/Svgs/ThreeDotsSvg';
 import { responsiveFontSize } from 'react-native-responsive-dimensions';
 import TableIcon from '../../assets/Svgs/TableIcon';
 import UserData from './UserData';
 import AddUsersSvg from '../../assets/Svgs/AddUsersSvg';
-import ThreeDotsModal from '../../Components/ThreeDotsModal';
 import UserThreeDotsModal from '../../Components/MainUserComponents/UserThreeDotsModal';
 import AnimatedUsersSearchBar from '../../Components/AnimatedUsersSearchBar';
 

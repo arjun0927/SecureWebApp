@@ -8,7 +8,6 @@ import {
 	TouchableWithoutFeedback,
 } from 'react-native';
 import {
-	responsiveHeight,
 	responsiveFontSize,
 } from 'react-native-responsive-dimensions';
 import UserIconSvg from '../../assets/Svgs/UserIconSvg';

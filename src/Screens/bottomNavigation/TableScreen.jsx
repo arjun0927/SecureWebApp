@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Image,
   StyleSheet,
@@ -6,6 +6,9 @@ import {
   TouchableOpacity,
   View,
   BackHandler,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
 } from 'react-native';
 import ThreeDotsSvg from '../../assets/Svgs/ThreeDotsSvg';
 import { responsiveFontSize } from 'react-native-responsive-dimensions';
@@ -14,28 +17,28 @@ import TableData from './TableData';
 import UserThreeDotsModal from '../../Components/MainUserComponents/UserThreeDotsModal';
 import AnimatedTableSearchBar from '../../Components/MainUserComponents/AnimatedTableSearchBar';
 
-const TableScreen = ({navigation}) => {
+const TableScreen = ({ navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
-	const backAction = () => {
-		if (navigation.isFocused()) {
-			// Allow back action to exit only if on the Home screen
-			BackHandler.exitApp();
-			return true;
-		} else {
-			navigation.goBack();
-			return true;
-		}
-	};
+    const backAction = () => {
+      if (navigation.isFocused()) {
+        // Allow back action to exit only if on the Home screen
+        BackHandler.exitApp();
+        return true;
+      } else {
+        navigation.goBack();
+        return true;
+      }
+    };
 
-	const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
 
-	return () => backHandler.remove();
-}, []);
+    return () => backHandler.remove();
+  }, []);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.leftHeader}>
           <Image
@@ -72,21 +75,26 @@ const TableScreen = ({navigation}) => {
         </View>
       </View>
 
-      {/* Main Container */}
-      <View style={styles.mainContainer}>
-        <View style={styles.mainContainerTop}>
-          <TableIcon fillColor="#4D8733" strokeColor="white" />
-          <Text style={styles.tableHeadingText}>List of Tables</Text>
+      {/* Main Container with KeyboardAvoidingView */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 10}
+        style={styles.keyboardAvoidingContainer}>
+        <View style={styles.mainContainer}>
+          <View style={styles.mainContainerTop}>
+            <TableIcon fillColor="#4D8733" strokeColor="white" />
+            <Text style={styles.tableHeadingText}>List of Tables</Text>
+          </View>
+          <TableData />
+          {modalVisible && (
+            <UserThreeDotsModal
+              visible={modalVisible}
+              onClose={() => setModalVisible(false)}
+            />
+          )}
         </View>
-        <TableData />
-        {modalVisible && (
-          <UserThreeDotsModal
-            visible={modalVisible}
-            onClose={() => setModalVisible(false)}
-          />
-        )}
-      </View>
-    </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -131,8 +139,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
   },
+  keyboardAvoidingContainer: {
+    flex: 1,
+  },
   mainContainer: {
-    height:'89%',
+    flex: 1,
     backgroundColor: '#FFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,

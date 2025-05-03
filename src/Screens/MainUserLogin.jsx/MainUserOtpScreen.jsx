@@ -25,7 +25,7 @@ const MainUserOtpScreen = ({ navigation }) => {
 	const [otp, setOtp] = useState(['', '', '', '', '']);
 	const [message, setMessage] = useState(null);
 
-	const {showToast}=useGlobalContext()
+	const { showToast } = useGlobalContext()
 
 	// Determine if both email and password are filled
 	const isFormValid = email.trim() !== '' && otp.every(digit => digit.trim() !== '');
@@ -67,7 +67,7 @@ const MainUserOtpScreen = ({ navigation }) => {
 			return;
 		}
 
-		if(!EmailRegex(email)){
+		if (!EmailRegex(email)) {
 			showToast({
 				type: 'ERROR',
 				message: 'Please enter valid email address',
@@ -80,7 +80,7 @@ const MainUserOtpScreen = ({ navigation }) => {
 		setMessage(null);
 
 		try {
-			const response = await axios.post('https://secure.ceoitbox.com/api/sendUserOTP', {email:email });
+			const response = await axios.post('https://secure.ceoitbox.com/api/sendUserOTP', { email: email });
 			console.log(response.data)
 			setMessage(response.data.message || 'OTP sent successfully.');
 			showToast({
@@ -108,7 +108,7 @@ const MainUserOtpScreen = ({ navigation }) => {
 			});
 			return;
 		}
-	
+
 		if (!emailRegex.test(email)) {
 			setError('Please enter a valid email address.');
 			showToast({
@@ -129,10 +129,15 @@ const MainUserOtpScreen = ({ navigation }) => {
 
 			console.log(response.data);
 			if (response.data && response.data.token) {
-				// console.log('token',response.data.token)
-				// console.log('userId',response.data.body._id)
-				await AsyncStorage.setItem('token',response?.data?.token)
-				await AsyncStorage.setItem('userId',response?.data?.body?._id)
+				const token = response.data.token;
+				const role = response.data.body.role;
+				const loginInfo = {
+					email: email.trim(),
+					token: token,
+					role: role,
+				}
+				await AsyncStorage.setItem('loginInfo', JSON.stringify(loginInfo));
+				await AsyncStorage.setItem('userId', response?.data?.body?._id)
 				navigation.navigate('UserMainScreen');
 				// console.log('Login successful:', response.data);
 				showToast({
@@ -151,7 +156,7 @@ const MainUserOtpScreen = ({ navigation }) => {
 			console.error(err);
 			setError('Failed to sign in. Please try again.');
 		} finally {
-			setIsLoading2(false); 
+			setIsLoading2(false);
 		}
 	};
 
@@ -235,7 +240,7 @@ const MainUserOtpScreen = ({ navigation }) => {
 
 			</View>
 
-			<TouchableOpacity onPress={handleSignIn} disabled={ !isFormValid}>
+			<TouchableOpacity onPress={handleSignIn} disabled={!isFormValid}>
 				<View
 					style={[
 						styles.nextBtn,
@@ -243,7 +248,7 @@ const MainUserOtpScreen = ({ navigation }) => {
 					]}
 				>
 					{isLoading2 ? (
-						<ActivityIndicator size={'small'} color={'#FFF'} /> 
+						<ActivityIndicator size={'small'} color={'#FFF'} />
 					) : (
 						<>
 							<MaterialIcons name={'login'} size={20} color={'white'} />
@@ -265,51 +270,51 @@ const styles = StyleSheet.create({
 		// padding: 20,
 	},
 	header: {
-        alignSelf: 'flex-end',
-        marginTop:20,
-        marginHorizontal:20,
-    },
-    textContainer: {
-        marginLeft: 20,
-    },
-    text1: {
-        fontSize: responsiveFontSize(3.5),
-        color: '#222327',
-        fontFamily: 'Poppins-SemiBold'
+		alignSelf: 'flex-end',
+		marginTop: 20,
+		marginHorizontal: 20,
+	},
+	textContainer: {
+		marginLeft: 20,
+	},
+	text1: {
+		fontSize: responsiveFontSize(3.5),
+		color: '#222327',
+		fontFamily: 'Poppins-SemiBold'
 
-    },
-    text2: {
-        fontSize: responsiveFontSize(2.1),
-        color: '#61A443',
-        fontFamily: 'Montserrat-Medium',
-        lineHeight: 22.05,
-    },
+	},
+	text2: {
+		fontSize: responsiveFontSize(2.1),
+		color: '#61A443',
+		fontFamily: 'Montserrat-Medium',
+		lineHeight: 22.05,
+	},
 	inputContainer: {
-        width:responsiveWidth(90),
-        alignSelf:'center'
-    },
-    inputWrapper: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: responsiveHeight(1.6),
-        borderWidth: 0.6,
-        borderColor: '#61A443',
-        borderRadius: 10,
-        paddingLeft: 10,
-    },
-    textInput: {
-        flex: 1,
-        color:'#222327',
-        minHeight:responsiveHeight(5),
-        paddingLeft: 10,
-        fontSize: responsiveFontSize(1.7),
-        fontFamily: 'Poppins-Regular'
-    },
+		width: responsiveWidth(90),
+		alignSelf: 'center'
+	},
+	inputWrapper: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginBottom: responsiveHeight(1.6),
+		borderWidth: 0.6,
+		borderColor: '#61A443',
+		borderRadius: 10,
+		paddingLeft: 10,
+	},
+	textInput: {
+		flex: 1,
+		color: '#222327',
+		minHeight: responsiveHeight(5),
+		paddingLeft: 10,
+		fontSize: responsiveFontSize(1.7),
+		fontFamily: 'Poppins-Regular'
+	},
 	otpWrapper: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		marginBottom: 20,
-		width:responsiveWidth(90)
+		width: responsiveWidth(90)
 	},
 	otpBox: {
 		width: responsiveWidth(15),
@@ -321,7 +326,7 @@ const styles = StyleSheet.create({
 		fontSize: responsiveFontSize(3),
 		color: '#222327',
 	},
-	
+
 
 	sendOtp: {
 		borderWidth: 0.7,
@@ -336,7 +341,7 @@ const styles = StyleSheet.create({
 	sendOtpText: {
 		color: '#222327',
 		fontSize: responsiveFontSize(1.5),
-		fontFamily:'Poppins-Regular',
+		fontFamily: 'Poppins-Regular',
 	},
 	resendOtpContainer: {
 		flexDirection: 'row',
@@ -350,44 +355,44 @@ const styles = StyleSheet.create({
 		textAlign: 'center',
 		color: 'black',
 		fontSize: responsiveFontSize(1.4),
-		fontFamily:'Poppins-Regular',
+		fontFamily: 'Poppins-Regular',
 	},
 	resendOtpContainerText2: {
 		textAlign: 'center',
 		color: '#61A443',
 		fontSize: responsiveFontSize(1.7),
-		fontFamily:'Poppins-Medium',
+		fontFamily: 'Poppins-Medium',
 	},
-	
+
 	signIn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: responsiveHeight(2),
-        marginLeft:20,
-        marginTop: responsiveHeight(6),
-    },
-    signInText: {
-        fontSize: responsiveFontSize(2.7),
-        color: 'black',
-        fontFamily:'Poppins-Medium',
-        marginLeft: 10,
-    },
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginBottom: responsiveHeight(2),
+		marginLeft: 20,
+		marginTop: responsiveHeight(6),
+	},
+	signInText: {
+		fontSize: responsiveFontSize(2.7),
+		color: 'black',
+		fontFamily: 'Poppins-Medium',
+		marginLeft: 10,
+	},
 	nextBtn: {
-        width: '90%',
-        height: responsiveHeight(6.5),
-        backgroundColor: '#4D8733',
-        borderRadius: responsiveFontSize(2),
-        justifyContent: 'center',
-        alignItems: 'center',
-        flexDirection: 'row',
-        alignSelf: 'center',
-        marginTop: responsiveHeight(6),
-        gap: 10,
-    },
-    nextBtnText: {
-        fontSize: responsiveFontSize(2.1),
-        color: 'white',
-        fontFamily:'Poppins-Medium',
-        textAlign: 'center',
-    },
+		width: '90%',
+		height: responsiveHeight(6.5),
+		backgroundColor: '#4D8733',
+		borderRadius: responsiveFontSize(2),
+		justifyContent: 'center',
+		alignItems: 'center',
+		flexDirection: 'row',
+		alignSelf: 'center',
+		marginTop: responsiveHeight(6),
+		gap: 10,
+	},
+	nextBtnText: {
+		fontSize: responsiveFontSize(2.1),
+		color: 'white',
+		fontFamily: 'Poppins-Medium',
+		textAlign: 'center',
+	},
 });

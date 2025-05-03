@@ -14,23 +14,17 @@ const DuplicateUsers = ({ modalVisible, setModalVisible, handleDelete, handleCan
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const {showToast}=useGlobalContext()
+  const {showToast} = useGlobalContext()
   
   // console.log('userdata',duplicateUser)
 
-  const showModal = () => setModalVisible(true);
   const hideModal = () => setModalVisible(false);
 
   useEffect(() => {
       setName(duplicateUser?.userName || '');
       setEmail(duplicateUser?.email || '');
       setPassword(duplicateUser?.password || '');
-      // const initialSelectedTables = editData?.tablesAccess?.map((table) => ({
-      //   tableName: table.tableName,
-      //   _id: table._id,
-      //   fieldSettings: table.userFieldSettings,
-      // }));
-      // setSelectedTables(initialSelectedTables || []);
+      
     }, [duplicateUser]);
 
     const handleSave = async () => {
@@ -44,7 +38,9 @@ const DuplicateUsers = ({ modalVisible, setModalVisible, handleDelete, handleCan
         return;
       }
       try {
-        const token = await AsyncStorage.getItem('token');
+        const data = await AsyncStorage.getItem('loginUser');
+        const parsedData = JSON.parse(data);
+        const token = parsedData?.token;
   
         const sendData = {
           allowEveryIP: duplicateUser.allowEveryIP,
@@ -62,7 +58,7 @@ const DuplicateUsers = ({ modalVisible, setModalVisible, handleDelete, handleCan
           workingTimeAccess: duplicateUser.workingTimeAccess,
         };
         // console.log('tableAccess', tablesAccess)
-        console.log('sendData', sendData);
+        // console.log('sendData', sendData);
         
         const response = await axios.post(
           `https://secure.ceoitbox.com/api/createUniqueUsers`,
@@ -74,7 +70,7 @@ const DuplicateUsers = ({ modalVisible, setModalVisible, handleDelete, handleCan
   
         if (response.data) {
           showToast({ type: 'SUCCESS', message: 'User Created Successfully' });
-          console.log('api response', response.data)
+          // console.log('api response', response.data)
           hideModal();
         }
       } catch (error) {

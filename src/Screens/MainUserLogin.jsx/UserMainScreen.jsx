@@ -1,5 +1,5 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View , BackHandler} from 'react-native';
-import React, {  useEffect, useState } from 'react';
+import { Image, StyleSheet, Text, TouchableOpacity, View, BackHandler } from 'react-native';
+import React, { useEffect, useState } from 'react';
 import SearchSvg from '../../assets/Svgs/SearchSvg';
 import ThreeDotsSvg from '../../assets/Svgs/ThreeDotsSvg';
 import { responsiveFontSize } from 'react-native-responsive-dimensions';
@@ -9,7 +9,7 @@ import AnimatedTableSearchBar from '../../Components/MainUserComponents/Animated
 import UserThreeDotsModal from '../../Components/MainUserComponents/UserThreeDotsModal';
 
 
-const UserMainScreen = ({navigation}) => {
+const UserMainScreen = ({ navigation }) => {
 	const [modalVisible, setModalVisible] = useState(false);
 
 	useEffect(() => {
@@ -23,9 +23,9 @@ const UserMainScreen = ({navigation}) => {
 				return true;
 			}
 		};
-	
+
 		const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
-	
+
 		return () => backHandler.remove();
 	}, []);
 
@@ -41,10 +41,9 @@ const UserMainScreen = ({navigation}) => {
 					</View>
 				</View>
 
-				{/* Row for icons */}
 				<View style={styles.iconContainer}>
-					
-					<AnimatedTableSearchBar/>
+
+					<AnimatedTableSearchBar />
 					<TouchableOpacity onPress={() => setModalVisible(!modalVisible)} >
 						<View style={[
 							styles.iconContainerCircle,
@@ -92,7 +91,7 @@ export default UserMainScreen;
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#E0FFD3', 
+		backgroundColor: '#E0FFD3',
 	},
 	header: {
 		height: '10.5%',
@@ -101,7 +100,7 @@ const styles = StyleSheet.create({
 		justifyContent: 'space-between',
 		alignItems: 'center',
 		paddingHorizontal: 20,
-		gap:15,
+		gap: 15,
 	},
 	leftHeader: {
 		flexDirection: 'row', // Left header with logo and text
@@ -142,8 +141,8 @@ const styles = StyleSheet.create({
 		gap: 5,
 		alignItems: 'center',
 		justifyContent: 'flex-start',
-		marginVertical:20,
-		marginHorizontal:20,
+		marginVertical: 20,
+		marginHorizontal: 20,
 	},
 	tableHeadingText: {
 		color: 'black',

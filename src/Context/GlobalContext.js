@@ -23,9 +23,21 @@ export const GlobalProvider = ({ children }) => {
 
   // Function to fetch table data by token
 
+  const getToken = async () => {
+    try {
+      const data = await AsyncStorage.getItem('loginInfo');
+      // console.log('loginInfo:', data); // Debugging log
+      const parsedData = JSON.parse(data);
+      const token = parsedData?.token; // Extract the token from the parsed data
+      return token;
+    } catch (error) {
+      console.error('Error fetching token:', error);
+    }
+  }
+
   const getAllTableData = async (id) => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await getToken();
       const response = await axios.get(
         `${Base_URL}/getTableData/${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -45,7 +57,7 @@ export const GlobalProvider = ({ children }) => {
   };
   const getDataByToken = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await getToken();
       const response = await axios.get(
         `${Base_URL}/getDataByToken`,
         {
@@ -123,7 +135,7 @@ export const GlobalProvider = ({ children }) => {
       const loginuser_Id = await AsyncStorage.getItem('userId');
       // console.log(loginuser_Id);
 
-      const token = await AsyncStorage.getItem('token');
+      const token = await getToken();
       // console.log(token);
       const response = await axios.get(
         `https://secure.ceoitbox.com/api/getTables/${loginuser_Id}`,
@@ -133,7 +145,7 @@ export const GlobalProvider = ({ children }) => {
           },
         }
       );
-      console.log('response',response.data);
+      // console.log('response',response.data);
 
       if (response.data) {
         setData(response.data);
@@ -148,7 +160,7 @@ export const GlobalProvider = ({ children }) => {
       const loginuser_Id = await AsyncStorage.getItem('userId');
       // console.log(loginuser_Id);
 
-      const token = await AsyncStorage.getItem('token');
+      const token = await getToken();
       // console.log(token);
       const response = await axios.get(
         `https://secure.ceoitbox.com/api/getUsers?userID=${loginuser_Id}`,

@@ -11,10 +11,15 @@ const Splace = ({ navigation }) => {
 
     return () => clearTimeout(timer); // Clean up timer
   }, [navigation]);
-  const getToken = async()=>{
-    const token = await AsyncStorage.getItem('token')
-    if(token){
+  const getToken = async () => {
+    const data = await AsyncStorage.getItem('loginInfo');
+    const parsedData = JSON.parse(data);
+    const { role, token } = parsedData
+    if (token && role === 'USER') {
       navigation.replace('UserMainScreen');
+    }
+    if (token && role === 'ADMIN') {
+      navigation.replace('BottomNavigation');
     }
   }
   useEffect(() => {
@@ -24,7 +29,7 @@ const Splace = ({ navigation }) => {
     <ImageBackground
       source={require('../assets/images/splaceBackground.png')} // Replace with your image path
       style={styles.container}
-      resizeMode="cover" 
+      resizeMode="cover"
     >
       <StatusBar translucent={true} backgroundColor="transparent" barStyle="dark-content" />
 

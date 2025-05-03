@@ -1,12 +1,10 @@
 import React from 'react';
 import { StyleSheet, View, Modal, TouchableOpacity } from 'react-native';
-import { Button, Text } from 'react-native-paper';  // Only use Paper components where needed
+import { Text } from 'react-native-paper';  
 import { responsiveFontSize, responsiveHeight, responsiveWidth } from 'react-native-responsive-dimensions';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import NoDataSvg2 from '../assets/Svgs/NoDataSvg2';
 
-const LogOut = ({ modalVisible, setModalVisible, handleLogout, handleCancel }) => {
-  const showModal = () => setModalVisible(true);
+const LogOut = ({ modalVisible, setModalVisible }) => {
   const hideModal = () => setModalVisible(false);
 
   return (

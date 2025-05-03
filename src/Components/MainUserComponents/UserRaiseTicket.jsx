@@ -8,8 +8,9 @@ import {
 	KeyboardAvoidingView,
 	Platform,
 	Image,
+	BackHandler,
 } from 'react-native';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
 import { responsiveFontSize } from 'react-native-responsive-dimensions';
@@ -19,6 +20,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useGlobalContext } from '../../Context/GlobalContext';
 import RNFS from 'react-native-fs';
+import Backhandler from '../Backhandler';
 
 const UserRaiseTicket = () => {
 	const [name, setName] = useState('');
@@ -120,6 +122,8 @@ const UserRaiseTicket = () => {
 			}
 		});
 	};
+
+	Backhandler();
 
 	return (
 		<KeyboardAvoidingView

@@ -5,7 +5,7 @@ import TableIcon from '../../assets/Svgs/TableIcon'; // Import TableIcon
 import { responsiveFontSize, responsiveHeight } from 'react-native-responsive-dimensions';
 
 const CustomTabBarButton = (props) => {
-  const RouteName = props.currentRoute || ''; // Use `currentRoute` directly
+  const RouteName = props.currentRoute || ''; 
 
   const focused = props.accessibilityState?.selected;
 
