@@ -1,9 +1,9 @@
 import React from 'react';
 import { Svg, Path } from 'react-native-svg';
 
-const UserIconSvg = ({ strokeColor = "#222327", strokeWidth = 1.5 }) => {
+const UserIconSvg = ({ strokeColor = "#222327", strokeWidth = 1.5 , width , height }) => {
   return (
-    <Svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 17 17" fill="none">
+    <Svg xmlns="http://www.w3.org/2000/svg" width={width} height={height} viewBox="0 0 17 17" fill="none">
       <Path
         d="M11.3334 14.875V13.4583C11.3334 12.7069 11.0349 11.9862 10.5036 11.4549C9.9722 10.9235 9.25153 10.625 8.50008 10.625H4.25008C3.49863 10.625 2.77797 10.9235 2.24661 11.4549C1.71526 11.9862 1.41675 12.7069 1.41675 13.4583V14.875"
         stroke={strokeColor}

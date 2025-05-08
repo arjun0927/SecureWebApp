@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import {
 	responsiveFontSize,
+	responsiveHeight,
 } from 'react-native-responsive-dimensions';
 import UserIconSvg from '../../assets/Svgs/UserIconSvg';
 import NotificationSvg from '../../assets/Svgs/NotificationSvg';
@@ -39,23 +40,22 @@ const UserThreeDotsModal = ({ visible, onClose }) => {
 		>
 			<TouchableWithoutFeedback onPress={onClose}>
 				<View style={styles.backdrop}>
-					{/* Modal Content */}
 					<TouchableWithoutFeedback>
 						<View style={styles.modalContent}>
 							<View style={styles.optionsContainer}>
 								<TouchableOpacity style={styles.option} onPress={handleRaiseTicket}>
-									<UserIconSvg />
+									<UserIconSvg width={responsiveFontSize(1.7)} height={responsiveFontSize(1.7)} />
 									<Text style={styles.optionText}>Raise Ticket</Text>
 								</TouchableOpacity>
 								<TouchableOpacity style={styles.option} onPress={handleWhatsNew}>
-									<NotificationSvg />
+									<NotificationSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)}/>
 									<Text style={styles.optionText}>What's New</Text>
 								</TouchableOpacity>
 								<TouchableOpacity
 									style={styles.option}
 									onPress={() => setModalVisible(true)}
 								>
-									<LogOutSvg />
+									<LogOutSvg width={responsiveFontSize(1.7)} height={responsiveFontSize(1.7)} />
 									<Text style={styles.optionText}>Log Out</Text>
 								</TouchableOpacity>
 							</View>
@@ -81,10 +81,7 @@ export default UserThreeDotsModal;
 const styles = StyleSheet.create({
 	backdrop: {
 	  flex: 1,
-	//   backgroundColor: 'rgba(0, 0, 0, 0.6)',
-	  alignItems: 'flex-end', 
-	  paddingTop:'21%',
-	  paddingRight:20,
+	  alignItems: 'flex-end',
 	},
 	modalContent: {
 	  borderWidth: 1,
@@ -94,9 +91,12 @@ const styles = StyleSheet.create({
 	  padding: 15,
 	  elevation: 1,
 	  width: '55%',
+	  position: 'absolute',
+	  top:responsiveHeight(10),
+	  right:10,
 	},
 	optionsContainer: {
-	  gap: 20,
+	  gap: 10,
 	},
 	option: {
 	  flexDirection: 'row',

@@ -86,7 +86,7 @@ const TableData = ({ navigation }) => {
         ) : (
           <FlatList
             data={data}
-            keyExtractor={(item, index) => index.toString()}
+            keyExtractor={(item, index) => index}
             renderItem={({ item }) => {
               const matchingTableAccess = tableAccess?.find(
                 (accessItem) => accessItem._id === item._id
@@ -103,6 +103,11 @@ const TableData = ({ navigation }) => {
               }
               return null;
             }}
+            ListEmptyComponent={() => (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No Data Found</Text>
+              </View>
+            )}
           />
         )
       }
@@ -121,79 +126,18 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '90%',
-    alignSelf: 'center',
     backgroundColor: 'white',
     borderRadius: 20,
     paddingHorizontal: 20,
-    paddingVertical: 8,
-    elevation: 3,
-    marginTop: 2,
-    marginBottom: 15,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderColor: '#FFFFFF',
-  },
-  headerOpen: {
-    marginVertical: 7,
-    borderBottomWidth: 1,
-    borderColor: '#BDC3D4',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  title: {
-    fontFamily: 'Poppins-Regular',
-    fontSize: 18,
-    color: 'black',
-    lineHeight: 32,
-  },
-  iconButton: {
-    backgroundColor: '#EEF5ED',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  toggleButton: {
-    width: 35,
-    height: 39,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dataRow: {
-    flexDirection: 'row',
     paddingVertical: 10,
-    paddingHorizontal: 5,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEFF6',
+    elevation: 3,
+    marginBottom: 20,
+    marginTop: 5,
+    alignSelf: 'center'
   },
-  noBorder: {
-    borderBottomWidth: 0,
-  },
-  rowLabel: {
-    width: '50%',
-    color: '#222327',
-    fontSize: responsiveFontSize(1.7),
-    fontFamily: 'Poppins',
-    fontWeight: '400',
-  },
-  rowValue: {
+  emptyContainer: {
     flex: 1,
-    color: '#578356',
-    fontSize: responsiveFontSize(1.5),
-    fontFamily: 'Poppins',
-    fontWeight: '400',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

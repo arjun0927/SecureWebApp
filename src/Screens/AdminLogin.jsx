@@ -10,6 +10,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useGlobalContext } from '../Context/GlobalContext';
 import { ActivityIndicator } from 'react-native-paper';
+import Header from '../Components/Header';
 
 const AdminLogin = ({ navigation }) => {
 
@@ -91,13 +92,7 @@ const AdminLogin = ({ navigation }) => {
             resizeMode="cover"
         >
             <View style={styles.container}>
-                <View style={styles.header}>
-                    <HeaderSvg />
-                </View>
-                <View style={styles.textContainer}>
-                    <Text style={styles.text1}>WELCOME TO</Text>
-                    <Text style={styles.text2}>Secure WebApp</Text>
-                </View>
+                <Header/>
                 <View style={styles.adminSignIn}>
                     <Text style={styles.adminSignInText}>Admin Sign In</Text>
                 </View>

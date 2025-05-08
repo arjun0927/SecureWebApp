@@ -1,9 +1,9 @@
 import React from 'react';
 import { Svg, Path } from 'react-native-svg';
 
-const TrashIcon = ({ strokeColor = "black", fillColor = "black", secondaryStrokeColor = "white" }) => {
+const TrashIcon = ({ strokeColor = "black", fillColor = "black", secondaryStrokeColor = "white" , width , height }) => {
   return (
-    <Svg width="22" height="25" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <Svg width={width} height={height} viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
       <Path
         d="M1.94397 4.72107H13.2676"
         stroke={strokeColor}

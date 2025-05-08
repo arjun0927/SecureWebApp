@@ -9,13 +9,12 @@ const CustomTabBarButton = (props) => {
 
   const focused = props.accessibilityState?.selected;
 
-  // Map your icons based on the route
   const Icons = {
     Users: (focused) => (
-      <UserIconSvg strokeColor={focused ? 'white' : 'black'} strokeWidth={1.5} />
+      <UserIconSvg strokeColor={focused ? 'white' : 'black'} strokeWidth={1.5} width={responsiveFontSize(2)} height={responsiveFontSize(2)} />
     ),
     Tables: (focused) => (
-      <TableIcon fillColor={focused ? 'white' : '#222327'} strokeColor={focused ? '#2F3033' : 'white'} />
+      <TableIcon fillColor={focused ? 'white' : '#222327'} strokeColor={focused ? '#2F3033' : 'white'} width={responsiveFontSize(2)} height={responsiveFontSize(2)}  />
     ),
   };
 

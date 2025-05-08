@@ -53,6 +53,7 @@ const UserTables = ({ navigation }) => {
                         data={item}
                         tableAccess={matchingTableAccess?.userFieldSettings}
                       />
+                      
                     </View>
                   );
                 }
@@ -61,7 +62,6 @@ const UserTables = ({ navigation }) => {
             }}
             ListEmptyComponent={() => (
               <View style={styles.emptyContainer}>
-                {/* <View style={styles.emptyIcon} /> */}
                 <Text style={styles.emptyText}>No Data Found</Text>
               </View>
             )}
@@ -78,17 +78,16 @@ export default UserTables;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginBottom: 60,
+    // marginBottom: 60,
   },
   card: {
     width: '90%',
     backgroundColor: 'white',
     borderRadius: 20,
     paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingVertical: 10,
     elevation: 3,
     marginBottom: 20,
-    // marginHorizontal:20,
     marginTop: 5,
     alignSelf: 'center'
   },
@@ -96,17 +95,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 100,
-  },
-  emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#EEF5ED', // Placeholder for an icon
-    marginBottom: 15,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize(1.6),
     fontFamily: 'Poppins-Medium',
     color: '#999',
   },

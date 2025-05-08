@@ -20,6 +20,7 @@ import {
     useBlurOnFulfill,
     useClearByFocusCell,
 } from 'react-native-confirmation-code-field';
+import Header from '../../Components/Header';
 
 const MainUserLogin = ({ navigation }) => {
     const [email, setEmail] = useState('');
@@ -29,9 +30,10 @@ const MainUserLogin = ({ navigation }) => {
     const [otpLoader, setOtpLoader] = useState(false);
     const [otp, setOtp] = useState('');
     const [visibleOtpUI, setVisibleOtpUI] = useState(false);
+    const [activeIndex, setActiveIndex] = useState(0); // Track which OTP cell is active
 
     const { showToast } = useGlobalContext();
-    
+
     // Always declare hooks at the top level, outside of any conditions
     const codeFieldRef = useBlurOnFulfill({ value: otp, cellCount: 5 });
     const [props, getCellOnLayoutHandler] = useClearByFocusCell({
@@ -60,14 +62,18 @@ const MainUserLogin = ({ navigation }) => {
     // Determine if both email and password are filled
     const isFormValid = email.trim() !== '' && password.trim() !== '';
 
-    useEffect(()=>{
-        console.log('otp',otp)
-    },[otp])
+    useEffect(() => {
+        console.log('otp', otp);
+        // Update active index based on OTP length if not manually set
+        if (otp.length < 5) {
+            setActiveIndex(otp.length);
+        }
+    }, [otp]);
 
     // Handle sign-in logic with API call
     const handleSignIn = async () => {
         if (!isFormValid) return;
-        
+
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!email.trim()) {
             showToast({
@@ -87,12 +93,10 @@ const MainUserLogin = ({ navigation }) => {
 
         setIsLoading(true);
 
-        
-
         try {
             // Check if OTP is required for this login
             const validationResult = await checkValidLogin({ email, password, otp });
-        
+
             // ✅ Show toast and return if there's a validation error
             if (validationResult?.error) {
                 showToast({
@@ -102,9 +106,9 @@ const MainUserLogin = ({ navigation }) => {
                 setIsLoading(false);
                 return;
             }
-        
+
             const askOtp = validationResult?.askOTP;
-        
+
             if (askOtp && !visibleOtpUI) {
                 // First time OTP is requested, show OTP UI
                 setVisibleOtpUI(true);
@@ -122,19 +126,19 @@ const MainUserLogin = ({ navigation }) => {
                     return;
                 }
             }
-        
+
             // Proceed with login API call
             const response = await axios.post('https://secure.ceoitbox.com/api/signin', {
                 email,
                 password,
                 otp: visibleOtpUI ? otp : '',
             });
-        
+
             console.log('login response', response.data);
-        
+
             if (response.data && response.data.token) {
                 await AsyncStorage.setItem('userId', response.data.body._id);
-        
+
                 const token = response.data.token;
                 const role = response.data.body.role;
                 const loginInfo = {
@@ -143,12 +147,12 @@ const MainUserLogin = ({ navigation }) => {
                     role: role,
                 };
                 await AsyncStorage.setItem('loginInfo', JSON.stringify(loginInfo));
-        
+
                 showToast({
                     type: 'SUCCESS',
                     message: 'Login successful'
                 });
-        
+
                 navigation.navigate('UserMainScreen');
                 setEmail('');
                 setPassword('');
@@ -169,7 +173,6 @@ const MainUserLogin = ({ navigation }) => {
         } finally {
             setIsLoading(false);
         }
-        
     };
 
     const sendOtp = async () => {
@@ -189,9 +192,6 @@ const MainUserLogin = ({ navigation }) => {
             });
 
             if (response.data) {
-                // console.log('OTP sent successfully:', response.data);
-                // Store the OTP from server response for validation later
-                // setServerOtp(response.data.OTP);
                 showToast({
                     type: 'SUCCESS',
                     message: 'OTP sent successfully'
@@ -208,20 +208,50 @@ const MainUserLogin = ({ navigation }) => {
         }
     };
 
+    // Handle cell touch to edit specific position
+    const handleCellPress = (index) => {
+        setActiveIndex(index);
+        // If the input has focus, this will bring up the keyboard
+        if (codeFieldRef && codeFieldRef.current) {
+            codeFieldRef.current.focus();
+        }
+    };
+
+    // Custom handler for OTP changes that supports editing at any position
+    const handleOtpChange = (text) => {
+        // If deleting, remove the character at activeIndex-1
+        if (text.length < otp.length) {
+            // Handle backspace - remove character at active position
+            const newOtp = otp.slice(0, activeIndex - 1) + otp.slice(activeIndex);
+            setOtp(newOtp);
+            setActiveIndex(Math.max(0, activeIndex - 1));
+        } 
+        // If adding a character
+        else if (text.length > otp.length) {
+            // Get the new character (last char of text)
+            const newChar = text.charAt(text.length - 1);
+            
+            // Only accept numeric input
+            if (/^\d$/.test(newChar)) {
+                // Insert at active position or append to end
+                if (activeIndex < 5) {
+                    const newOtp = otp.slice(0, activeIndex) + newChar + otp.slice(activeIndex);
+                    // Limit to 5 characters
+                    setOtp(newOtp.slice(0, 5));
+                    // Move cursor right if there's room
+                    setActiveIndex(Math.min(newOtp.length, 5));
+                }
+            }
+        }
+    };
+
     return (
         <KeyboardAvoidingView
             style={{ flex: 1 }}
             behavior={Platform.OS === 'android' ? 'padding' : 'padding'}
         >
             <View style={styles.container}>
-                <View style={styles.header}>
-                    <HeaderSvg />
-                </View>
-                <View style={styles.textContainer}>
-                    <Text style={styles.text1}>WELCOME TO</Text>
-                    <Text style={styles.text2}>Secure WebApp</Text>
-                </View>
-
+                <Header/>
                 <View style={styles.signIn}>
                     <MaterialIcons name={'login'} size={responsiveFontSize(2.7)} color={'black'} />
                     <Text style={styles.signInText}>Sign In</Text>
@@ -229,11 +259,11 @@ const MainUserLogin = ({ navigation }) => {
 
                 <View style={styles.inputContainer}>
                     <View style={styles.inputWrapper}>
-                        <EmailSvg style={styles.icon} />
+                        <EmailSvg width={responsiveFontSize(1.7)} height={responsiveFontSize(1.7)} />
                         <RNTextInput
                             style={styles.textInput}
                             placeholder="Email ID*"
-                            placeholderTextColor={'#222327'}
+                            placeholderTextColor={'gray'}
                             value={email}
                             onChangeText={setEmail}
                             keyboardType='email-address'
@@ -242,11 +272,11 @@ const MainUserLogin = ({ navigation }) => {
 
                     {/* Password Input */}
                     <View style={styles.inputWrapper}>
-                        <LockSvg style={styles.icon} />
+                        <LockSvg width={responsiveFontSize(1.7)} height={responsiveFontSize(1.7)} />
                         <RNTextInput
                             style={styles.textInput}
                             placeholder="Password*"
-                            placeholderTextColor={'#222327'}
+                            placeholderTextColor={'gray'}
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry={!showPassword}
@@ -254,48 +284,65 @@ const MainUserLogin = ({ navigation }) => {
                         />
                         <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.togglePassword}>
                             {showPassword ? (
-                                <Feather name="eye" size={18} color="#222327" />
+                                <Feather name="eye" size={responsiveFontSize(1.7)} color="gray" />
                             ) : (
-                                <Feather name="eye-off" size={18} color="#222327" />
+                                <Feather name="eye-off" size={responsiveFontSize(1.7)} color="gray" />
                             )}
                         </TouchableOpacity>
                     </View>
 
                     {/* OTP Input Field - Always render but conditionally display */}
-                    <View style={{ marginTop: 10, display: visibleOtpUI ? 'flex' : 'none' }}>
-                        <CodeField
-                            ref={codeFieldRef}
-                            {...props}
-                            value={otp}
-                            onChangeText={setOtp}
-                            cellCount={5}
-                            keyboardType="number-pad"
-                            textContentType="oneTimeCode"
-                            autoComplete={Platform.select({ android: 'sms-otp', default: 'one-time-code' })}
-                            renderCell={({ index, symbol, isFocused }) => (
-                                <Text
-                                    key={index}
-                                    style={[
-                                        {
-                                            width: responsiveHeight(6),
-                                            height: responsiveHeight(6),
-                                            borderWidth: 1,
-                                            borderColor: '#61A443',
-                                            borderRadius: 10,
-                                            textAlign: 'center',
-                                            justifyContent: 'center',
-                                            alignItems: 'center',
-                                            fontSize: responsiveFontSize(3.5),
-                                            color: '#222327',
-                                        },
-                                        isFocused && { borderColor: '#61A443', backgroundColor: '#61A443', },
-                                    ]}
-                                >
-                                    {symbol || (isFocused ? <Cursor /> : null)}
-                                </Text>
-                            )}
-                        />
-                    </View>
+                    {visibleOtpUI && (
+                        <View style={styles.otpFieldContainer}>
+                            <CodeField
+                                ref={codeFieldRef}
+                                {...props}
+                                value={otp}
+                                onChangeText={handleOtpChange}
+                                cellCount={5}
+                                keyboardType="number-pad"
+                                textContentType="oneTimeCode"
+                                autoComplete={Platform.select({ android: 'sms-otp', default: 'one-time-code' })}
+                                renderCell={({ index, symbol, isFocused }) => (
+                                    <TouchableOpacity 
+                                        key={index}
+                                        onPress={() => handleCellPress(index)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <View
+                                            style={[
+                                                styles.cell,
+                                                {
+                                                    borderColor: (isFocused || index === activeIndex) ? '#61A443' : '#ccc',
+                                                    backgroundColor: symbol ? '#61A443' : 'transparent',
+                                                },
+                                            ]}
+                                        >
+                                            <Text style={[
+                                                styles.cellText,
+                                                { color: symbol ? '#FFF' : '#000' }
+                                            ]}>
+                                                {symbol || (isFocused && index === activeIndex ? <Cursor style={{ backgroundColor: '#61A443' }} /> : null)}
+                                            </Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                )}
+                            />
+                            
+                            {/* Hidden TextInput for Manual Position Control */}
+                            <RNTextInput
+                                style={{ height: 0, width: 0, opacity: 0 }}
+                                value={otp}
+                                onChangeText={handleOtpChange}
+                                keyboardType="number-pad"
+                                maxLength={5}
+                                selection={{ start: activeIndex, end: activeIndex }}
+                                onSelectionChange={(event) => {
+                                    setActiveIndex(event.nativeEvent.selection.start);
+                                }}
+                            />
+                        </View>
+                    )}
 
                     {visibleOtpUI && (
                         <TouchableOpacity onPress={sendOtp}>
@@ -310,8 +357,8 @@ const MainUserLogin = ({ navigation }) => {
                     )}
                 </View>
 
-                <TouchableOpacity 
-                    onPress={handleSignIn} 
+                <TouchableOpacity
+                    onPress={handleSignIn}
                     disabled={!isFormValid || (visibleOtpUI && otp.length < 5)}
                 >
                     <View
@@ -321,10 +368,10 @@ const MainUserLogin = ({ navigation }) => {
                         ]}
                     >
                         {isLoading ? (
-                            <ActivityIndicator size={'small'} color={'#FFF'} />
+                            <ActivityIndicator size={responsiveFontSize(2)} color={'#FFF'} />
                         ) : (
                             <>
-                                <MaterialIcons name={'login'} size={20} color={'white'} />
+                                <MaterialIcons name={'login'} size={responsiveFontSize(2)} color={'white'} />
                                 <Text style={styles.nextBtnText}>
                                     Sign In
                                 </Text>
@@ -381,7 +428,7 @@ const styles = StyleSheet.create({
         color: '#222327',
         minHeight: responsiveHeight(5),
         paddingLeft: 10,
-        fontSize: responsiveFontSize(1.7),
+        fontSize: responsiveFontSize(1.5),
         fontFamily: 'Poppins-Regular'
     },
     icon: {
@@ -438,20 +485,20 @@ const styles = StyleSheet.create({
         fontSize: responsiveFontSize(1.5),
         fontFamily: 'Poppins-Regular',
     },
-    otpContainer: {
+    otpFieldContainer: {
+        marginTop: 10,
+    },
+    cell: {
+        width: responsiveHeight(6),
+        height: responsiveHeight(5.5),
         borderWidth: 1,
-        borderColor: '#61A443',
-        width: '35%',
+        borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
-        borderRadius: responsiveFontSize(3),
-        paddingVertical: responsiveHeight(0.7),
-        marginTop: 10,
-        marginLeft: responsiveHeight(2)
+        margin: 5,
     },
-    otpContainerText: {
-        color: '#222327',
-        fontSize: responsiveFontSize(1.6),
-        fontFamily: 'Poppins-Regular',
-    }
+    cellText: {
+        fontSize: responsiveFontSize(3.5),
+        textAlign: 'center',
+    },
 });

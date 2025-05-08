@@ -2,7 +2,7 @@ import { Image, StyleSheet, Text, TouchableOpacity, View, BackHandler } from 're
 import React, { useEffect, useState } from 'react';
 import SearchSvg from '../../assets/Svgs/SearchSvg';
 import ThreeDotsSvg from '../../assets/Svgs/ThreeDotsSvg';
-import { responsiveFontSize } from 'react-native-responsive-dimensions';
+import { responsiveFontSize, responsiveHeight, responsiveWidth } from 'react-native-responsive-dimensions';
 import TableIcon from '../../assets/Svgs/TableIcon';
 import UserTables from '../../Components/MainUserComponents/UserTables';
 import AnimatedTableSearchBar from '../../Components/MainUserComponents/AnimatedTableSearchBar';
@@ -50,15 +50,15 @@ const UserMainScreen = ({ navigation }) => {
 							modalVisible && {
 								justifyContent: 'center',
 								alignItems: 'center',
-								width: 40,
-								height: 40,
-								borderRadius: 20,
+								width: responsiveWidth(8),
+								height: responsiveWidth(8),
+								borderRadius: responsiveWidth(4),
 								elevation: 1,
 								backgroundColor: '#FFF',
 								elevation: 4,
 							}
 						]}>
-							<ThreeDotsSvg />
+							<ThreeDotsSvg width={responsiveFontSize(2.5)} height={responsiveFontSize(2.5)} />
 						</View>
 					</TouchableOpacity>
 
@@ -68,7 +68,7 @@ const UserMainScreen = ({ navigation }) => {
 			{/* Main Container */}
 			<View style={styles.mainContainer}>
 				<View style={styles.mainContainerTop}>
-					<TableIcon fillColor="#4D8733" strokeColor="white" />
+					<TableIcon fillColor="#4D8733" strokeColor="white" width={responsiveFontSize(2.1)} height={responsiveFontSize(2.1)} />
 					<Text style={styles.tableHeadingText}>List of Tables</Text>
 				</View>
 				<UserTables />
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
 		backgroundColor: '#E0FFD3',
 	},
 	header: {
-		height: '10.5%',
+		height: responsiveHeight(10),
 		backgroundColor: '#E0FFD3',
 		flexDirection: 'row',
 		justifyContent: 'space-between',
@@ -104,23 +104,24 @@ const styles = StyleSheet.create({
 	},
 	leftHeader: {
 		flexDirection: 'row', // Left header with logo and text
-		gap: 10,
+		gap: responsiveWidth(2),
 		alignItems: 'center', // Aligning the content vertically in the center
 	},
 	text1: {
-		fontSize: responsiveFontSize(2.3),
+		fontSize: responsiveFontSize(2),
 		color: '#222327',
-		fontWeight: 'bold',
-		lineHeight: 22.05,
+		lineHeight: responsiveFontSize(2.5),
+		fontFamily: 'Poppins-SemiBold',
 	},
 	img: {
-		width: 40,
-		height: 40,
+		width: responsiveWidth(9),
+		height: responsiveWidth(9),
+		resizeMode: 'contain',
 	},
 	iconContainer: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		gap: 10,
+		gap: 15,
 	},
 	iconContainerCircle: {
 		shadowColor: '#000',
@@ -138,7 +139,7 @@ const styles = StyleSheet.create({
 	},
 	mainContainerTop: {
 		flexDirection: 'row',
-		gap: 5,
+		gap: responsiveWidth(1),
 		alignItems: 'center',
 		justifyContent: 'flex-start',
 		marginVertical: 20,
@@ -146,8 +147,7 @@ const styles = StyleSheet.create({
 	},
 	tableHeadingText: {
 		color: 'black',
-		fontSize: responsiveFontSize(2.4), // Added size to the text for clarity
-		// paddingHorizontal:20,
+		fontSize: responsiveFontSize(2.2),
 		fontWeight: '500',
 	},
 });

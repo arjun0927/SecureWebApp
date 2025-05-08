@@ -65,10 +65,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9f9f9',
   },
   modalContent: {
+    padding:20,
     backgroundColor: '#FFF',
-    padding: 25,
+    width:responsiveWidth(90),
     borderRadius: 30,
-    width: responsiveWidth(90),
     elevation: 10,
   },
   backdrop: {

@@ -65,11 +65,11 @@ const TableCardContent = ({ data, tableAccess }) => {
               style={styles.iconButton}
               onPress={() => setModalVisible(true)}
             >
-              <DeleteSvg />
+              <DeleteSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)} />
             </TouchableOpacity>
-            <View style={styles.toggleButton}>
-              {isOpen ? <DownArrowSvg /> : <TopArrowSvg />}
-            </View>
+            <TouchableOpacity onPress={toggleOpen} style={styles.toggleButton}>
+              {isOpen ? <DownArrowSvg width={responsiveFontSize(1.6)} height={responsiveFontSize(1.6)} /> : <TopArrowSvg width={responsiveFontSize(1.6)} height={responsiveFontSize(1.6)} />}
+            </TouchableOpacity>
           </View>
         </View>
       </TouchableOpacity>

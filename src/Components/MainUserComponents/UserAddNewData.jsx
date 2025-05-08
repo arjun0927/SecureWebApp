@@ -8,8 +8,10 @@ import {
 	ScrollView,
 	Dimensions,
 	StatusBar,
+	Animated,
+	Keyboard,
 } from 'react-native';
-import React, { useRef, useState, useCallback, useMemo } from 'react';
+import React, { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
 import axios from 'axios';
@@ -17,45 +19,135 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useGlobalContext } from '../../Context/GlobalContext';
 import { ActivityIndicator } from 'react-native-paper';
 import { TextInput } from 'react-native-paper';
-import DropdownAccordion from './DropdownAccordion';
-import { launchImageLibrary } from 'react-native-image-picker';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { launchImageLibrary } from 'react-native-image-picker';
+import getToken from '../getToken';
 
 // Get screen dimensions for responsive design
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Scale factor for responsive sizing
 const scaleFactor = SCREEN_WIDTH / 375; // Base scale on standard iPhone width
 
 // Responsive sizing functions
 const rs = (size) => size * scaleFactor; // Responsive size
 const rf = (size) => Math.round(size * scaleFactor); // Responsive font size
 
+// Floating Accordion Component
+const FloatingAccordion = ({ field, dropdownItems, formData, handleInputChange }) => {
+	const [isOpen, setIsOpen] = useState(false);
+	const animatedHeight = useRef(new Animated.Value(0)).current;
+	const [selectedItem, setSelectedItem] = useState(formData[field] || 'Select');
+
+	const toggleAccordion = () => {
+		setIsOpen(!isOpen);
+		Animated.timing(animatedHeight, {
+			toValue: isOpen ? 0 : rs(150), // Adjust height based on content
+			duration: 300,
+			useNativeDriver: false,
+		}).start();
+	};
+
+	const selectItem = (item) => {
+		setSelectedItem(item);
+		handleInputChange(field, item);
+		toggleAccordion();
+	};
+
+	return (
+		<View style={styles.accordionContainer}>
+			<TouchableOpacity
+				style={styles.accordionHeader}
+				onPress={toggleAccordion}
+				activeOpacity={0.7}
+			>
+				<View style={styles.accordionTitleContainer}>
+					<Text style={[styles.accordionLabel, selectedItem ? styles.accordionLabelSelected : null]}>
+						{field}
+					</Text>
+					<Text style={styles.accordionSelectedValue} numberOfLines={1}>
+						{selectedItem}
+					</Text>
+				</View>
+				<Feather
+					name={isOpen ? "chevron-up" : "chevron-down"}
+					size={rs(20)}
+					color="#4D8733"
+				/>
+			</TouchableOpacity>
+			<Animated.View style={[styles.accordionBody, { height: animatedHeight }]}>
+				<ScrollView
+					nestedScrollEnabled={true}
+					showsVerticalScrollIndicator={true}
+					contentContainerStyle={styles.accordionScrollContent}
+				>
+					{dropdownItems.map((item, index) => (
+						<TouchableOpacity
+							key={`dropdown-${field}-${index}`}
+							style={[
+								styles.accordionItem,
+								selectedItem === item && styles.accordionItemSelected
+							]}
+							onPress={() => selectItem(item)}
+						>
+							<Text style={[
+								styles.accordionItemText,
+								selectedItem === item && styles.accordionItemTextSelected
+							]}>
+								{item}
+							</Text>
+						</TouchableOpacity>
+					))}
+				</ScrollView>
+			</Animated.View>
+		</View>
+	);
+};
+
 const UserAddNewData = ({ route }) => {
 	const { showToast, getAllTableData } = useGlobalContext();
 	const [formData, setFormData] = useState({});
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [imageUri, setImageUri] = useState('');
+	const [imageUris, setImageUris] = useState({}); // Track image URIs for each field
 	const navigation = useNavigation();
 	const { fieldData, id, typeInfo } = route.params;
 	const [datePickerField, setDatePickerField] = useState(null);
 	const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+	const [keyboardVisible, setKeyboardVisible] = useState(false);
 
 	const inputRefs = useRef({});
+	const scrollViewRef = useRef();
+
+	// Track keyboard visibility
+	useEffect(() => {
+		const keyboardDidShowListener = Keyboard.addListener(
+			'keyboardDidShow',
+			() => setKeyboardVisible(true)
+		);
+		const keyboardDidHideListener = Keyboard.addListener(
+			'keyboardDidHide',
+			() => setKeyboardVisible(false)
+		);
+
+		return () => {
+			keyboardDidShowListener.remove();
+			keyboardDidHideListener.remove();
+		};
+	}, []);
 
 	// Memoize the empty validation function to prevent unnecessary re-renders
 	const isEmptyForm = useMemo(() => {
 		return Object.keys(formData).length === 0;
 	}, [formData]);
 
-	// Handle form submission with optimized async operations
 	const handleSave = useCallback(async () => {
 		if (isSubmitting) return;
 
 		setIsSubmitting(true);
 
 		try {
-			const token = await AsyncStorage.getItem('token');
+			const token = await getToken();
+
+			console.log('Form Data:', formData);
 
 			const response = await axios.post(
 				`https://secure.ceoitbox.com/api/create/TableData/${id}`,
@@ -69,11 +161,12 @@ const UserAddNewData = ({ route }) => {
 
 			if (response) {
 				// Fetch updated data
+				console.log('Data saved successfully:', response.data);
 				await getAllTableData(id);
 
 				// Reset form state
 				setFormData({});
-				setImageUri('');
+				setImageUris({});
 
 				// Clear input fields
 				Object.keys(inputRefs.current).forEach((key) => {
@@ -88,7 +181,7 @@ const UserAddNewData = ({ route }) => {
 				});
 			}
 		} catch (error) {
-			console.error('Error saving data:', error.response?.data || error.message);
+			console.error('Error saving data:', error);
 
 			showToast({
 				type: 'ERROR',
@@ -142,7 +235,13 @@ const UserAddNewData = ({ route }) => {
 			// Process only when we have valid response data
 			if (response.assets?.[0]?.uri) {
 				const sourceUri = response.assets[0].uri;
-				setImageUri(sourceUri);
+
+				// Update only the specific field's image URI
+				setImageUris(prev => ({
+					...prev,
+					[field]: sourceUri
+				}));
+
 				handleInputChange(field, sourceUri);
 			}
 		} catch (error) {
@@ -160,9 +259,8 @@ const UserAddNewData = ({ route }) => {
 		const dropdownItems = typeInfo?.[fieldName]?.dropdownItems;
 		if (fieldName === '__ID') return null;
 
-		// Common text input styles
 		const commonInputStyles = {
-			fontSize: rf(16),
+			fontSize: rf(15),
 			height: rs(50),
 			paddingHorizontal: rs(5),
 			backgroundColor: 'white',
@@ -206,8 +304,8 @@ const UserAddNewData = ({ route }) => {
 							value={formData[field] || "dd-mm-yy"}
 							editable={false}
 							label={fieldName}
-							underlineColor="#B9BDCF"
-							activeUnderlineColor="#4D8733"
+							underlineColor='#B9BDCF'
+							activeUnderlineColor='#4D8733'
 							textColor="black"
 							style={[commonInputStyles, { flex: 1 }]}
 						/>
@@ -224,7 +322,7 @@ const UserAddNewData = ({ route }) => {
 			case 'Dropdown Range':
 				if (dropdownItems?.length > 0) {
 					return (
-						<DropdownAccordion
+						<FloatingAccordion
 							field={fieldName}
 							dropdownItems={dropdownItems}
 							formData={formData}
@@ -237,28 +335,37 @@ const UserAddNewData = ({ route }) => {
 			case 'File':
 				return (
 					<View style={styles.fileContainer}>
-						<TouchableOpacity
-							onPress={() => selectImageFromGallery(field)}
-							style={styles.fileInputButton}
-						>
-							<Text style={styles.fileButtonText}>Choose File</Text>
-						</TouchableOpacity>
-						<View style={styles.fileNameContainer}>
-							<Text
-								style={styles.fileName}
-								numberOfLines={1}
-								ellipsizeMode="middle"
-							>
-								{imageUri ? imageUri.split('/').pop() : 'No file chosen'}
-							</Text>
+
+						<View style={styles.fileContainer}>
+							<View style={{ position: 'relative' }}>
+
+								<TouchableOpacity
+									onPress={() => selectImageFromGallery(field)}
+									style={styles.fileInputButton}
+								>
+									<Text style={styles.fileButtonText}>Choose File</Text>
+								</TouchableOpacity>
+							</View>
+
+							<View style={styles.fileNameContainer}>
+								<Text style={{ color: '#4D8733', fontFamily: 'Poppins-Regular', fontSize: rs(10.5) }}>{fieldName}</Text>
+								<Text
+									style={styles.fileName}
+									numberOfLines={1}
+									ellipsizeMode="middle"
+								>
+									{imageUris[field] ? imageUris[field].split('/').pop() : 'No file chosen'}
+								</Text>
+							</View>
 						</View>
+
 					</View>
 				);
 
 			default:
 				return null;
 		}
-	}, [formData, typeInfo, handleInputChange, showDatePicker, selectImageFromGallery, imageUri]);
+	}, [formData, typeInfo, handleInputChange, showDatePicker, selectImageFromGallery, imageUris]);
 
 	// Create a memoized list of form fields
 	const formFields = useMemo(() => {
@@ -272,7 +379,7 @@ const UserAddNewData = ({ route }) => {
 	return (
 		<KeyboardAvoidingView
 			style={styles.mainContainer}
-			// behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+			behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
 			keyboardVerticalOffset={Platform.OS === 'ios' ? rs(20) : 0}
 		>
 			<StatusBar barStyle="dark-content" backgroundColor="#F4FAF4" />
@@ -293,7 +400,11 @@ const UserAddNewData = ({ route }) => {
 
 				{/* Form */}
 				<ScrollView
-					contentContainerStyle={styles.formContainer}
+					ref={scrollViewRef}
+					contentContainerStyle={[
+						styles.formContainer,
+						// { paddingBottom: keyboardVisible ? rs(100) : rs(20) }
+					]}
 					showsVerticalScrollIndicator={false}
 					keyboardShouldPersistTaps="handled"
 				>
@@ -365,7 +476,7 @@ const styles = StyleSheet.create({
 		marginLeft: rs(5),
 	},
 	formContainer: {
-		// paddingBottom: rs(20),
+		flexGrow: 1,
 	},
 	form: {
 		backgroundColor: '#FFF',
@@ -380,7 +491,7 @@ const styles = StyleSheet.create({
 		elevation: 2,
 	},
 	inputGroup: {
-		marginBottom: rs(15),
+		marginBottom: rs(5),
 	},
 	dateInputContainer: {
 		flexDirection: 'row',
@@ -424,24 +535,23 @@ const styles = StyleSheet.create({
 	},
 	fileName: {
 		color: '#333333',
-		fontSize: rf(14),
+		fontSize: rf(12),
 		fontFamily: 'Poppins-Regular',
 	},
 	footer: {
 		paddingVertical: rs(10),
 		backgroundColor: '#F4FAF4',
-		//   borderTopWidth: 1,
-		//   borderTopColor: '#EBE7F3',
+		borderTopWidth: StyleSheet.hairlineWidth,
+		borderTopColor: '#EBE7F3',
 	},
 	saveBtn: {
 		backgroundColor: '#4D8733',
-		paddingVertical: rs(15),
-		width: '45%',
+		paddingVertical: rs(10),
+		width: '40%',
 		alignSelf: 'center',
 		borderRadius: rs(10),
 		alignItems: 'center',
 		justifyContent: 'center',
-		minHeight: rs(50),
 	},
 	disabledButton: {
 		opacity: 0.5,
@@ -451,6 +561,59 @@ const styles = StyleSheet.create({
 		fontSize: rf(16),
 		fontFamily: 'Poppins-SemiBold',
 		letterSpacing: 0.5,
+	},
+	// Accordion styles
+	accordionContainer: {
+		borderBottomWidth: 0.6,
+		borderBottomColor: '#B9BDCF',
+		overflow: 'hidden',
+	},
+	accordionHeader: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		// paddingVertical: rs(15),
+	},
+	accordionTitleContainer: {
+		flex: 1,
+	},
+	accordionLabel: {
+		color: '#848486',
+		fontSize: rf(10.5),
+		fontFamily: 'Poppins-Regular',
+	},
+	accordionLabelSelected: {
+		color: '#4D8733',
+	},
+	accordionSelectedValue: {
+		color: '#222327',
+		fontSize: rf(15),
+		fontFamily: 'Poppins-Regular',
+		marginTop: rs(2),
+	},
+	accordionBody: {
+		overflow: 'hidden',
+	},
+	accordionScrollContent: {
+		// paddingBottom: rs(10),
+	},
+	accordionItem: {
+		paddingVertical: rs(10),
+		paddingHorizontal: rs(5),
+		borderBottomWidth: StyleSheet.hairlineWidth,
+		borderBottomColor: '#E5E5E5',
+	},
+	accordionItemSelected: {
+		backgroundColor: '#F4FAF4',
+	},
+	accordionItemText: {
+		color: '#222327',
+		fontSize: rf(14),
+		fontFamily: 'Poppins-Regular',
+	},
+	accordionItemTextSelected: {
+		color: '#4D8733',
+		fontFamily: 'Poppins-Medium',
 	},
 });
 

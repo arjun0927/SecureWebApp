@@ -1,15 +1,12 @@
 import React, { useState } from 'react';
 import { ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import HeaderSvg from '../assets/Svgs/HeaderSvg';
 import {
     responsiveFontSize,
     responsiveHeight,
 } from 'react-native-responsive-dimensions';
-
 import ForwardIcon from '../assets/Svgs/ForwardIcon';
-import Circle from '../assets/Svgs/Circle';
-import RadioSelectedCheckbox from '../assets/Svgs/RadioSelectedCheckbox';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Header from '../Components/Header';
 
 const UserPermission = ({ navigation }) => {
     const [selectedButton, setSelectedButton] = useState(null); // Track which button is selected
@@ -34,13 +31,7 @@ const UserPermission = ({ navigation }) => {
                 resizeMode="cover"
             >
                 <View>
-                    <View style={styles.header}>
-                        <HeaderSvg />
-                    </View>
-                    <View style={styles.textContainer}>
-                        <Text style={styles.text1}>WELCOME TO</Text>
-                        <Text style={styles.text2}>Secure WebApp</Text>
-                    </View>
+                    <Header/>
                     <View style={styles.btnContainer}>
                         <TouchableOpacity
                             activeOpacity={0.8}
@@ -121,7 +112,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FEFEFF',
         // padding: 20,
     },
-    backgroundImage:{
+    backgroundImage: {
         // flex: 1,
         width: '100%',
         height: '30%',

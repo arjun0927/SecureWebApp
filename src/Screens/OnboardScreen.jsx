@@ -6,6 +6,9 @@ import {
   Image,
   TouchableOpacity,
   Animated,
+  SafeAreaView,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import AppIntroSlider from 'react-native-app-intro-slider';
 import {
@@ -22,17 +25,17 @@ const onboardData = [
   {
     id: 1,
     img: require('../assets/images/onboard/1.png'),
-    text: 'Access controls ensure security and protect Info',
+    message: 'Access controls ensure security and protect Info',
   },
   {
     id: 2,
     img: require('../assets/images/onboard/2.png'),
-    text: 'Optimized mobile view for seamless data editing on-go.',
+    message: 'Optimized mobile view for seamless data editing on-go.',
   },
   {
     id: 3,
     img: require('../assets/images/onboard/3.png'),
-    text: 'Ensure robust data governance via permissions .',
+    message: 'Ensure robust data governance via permissions.',
   },
 ];
 
@@ -55,7 +58,7 @@ const Onboard = () => {
       <View style={styles.slideContainer}>
         <Image style={styles.mainImage} source={item.img} />
         <View style={styles.textWrapper}>
-          <Text style={styles.text}>{item.text}</Text>
+          <Text style={styles.text}>{item.message}</Text>
         </View>
       </View>
     );
@@ -79,50 +82,52 @@ const Onboard = () => {
   };
 
   return (
-    <LinearGradient colors={['#FFF', '#D8E8DD']} style={styles.container}>
-      {/* Fixed Header */}
-      <View style={styles.headerContainer}>
-        <View style={styles.header}>
-          <HeaderSvg />
-          <View>
-            <Text style={styles.headerText}>Secure</Text>
-            <Text style={styles.headerText}>WebApp</Text>
+    <SafeAreaView style={{ flex: 1 }}>
+      <LinearGradient colors={['#FFF', '#D8E8DD']} style={styles.container}>
+        {/* Fixed Header with SafeAreaView consideration */}
+        <View style={styles.headerContainer}>
+          <View style={styles.header}>
+            <HeaderSvg width={responsiveFontSize(2.5)} height={responsiveFontSize(2.5)} />
+            <View>
+              <Text style={styles.headerText}>Secure</Text>
+              <Text style={styles.headerText}>WebApp</Text>
+            </View>
           </View>
-        </View>
 
-        <TouchableOpacity onPress={handleNextScreen} style={styles.skipButton}>
-          <Text style={[styles.headerText, { color: '#000' }]}>Skip</Text>
-        </TouchableOpacity>
-      </View>
-      
-      {/* Slider only for images and text */}
-      <View style={styles.sliderContainer}>
-        <AppIntroSlider
-          ref={sliderRef}
-          renderItem={renderItem}
-          data={onboardData}
-          onSlideChange={(index) => setActiveIndex(index)}
-          renderPagination={() => null} // Disable built-in pagination
-          showPrevButton={false}
-          showNextButton={false}
-          showDoneButton={false}
-          dotStyle={{display: 'none'}}
-          activeDotStyle={{display: 'none'}}
-        />
-        {renderPagination()} {/* Render our custom pagination */}
-      </View>
-      
-      {/* Fixed Bottom Button */}
-      <View style={styles.btnContainer}>
-        <TouchableOpacity 
-          activeOpacity={0.9} 
-          onPress={() => navigation.replace('UserPermission')}
-          style={styles.btn}
-        >
-          <Text style={styles.btnText}>Log In Now!</Text>
-        </TouchableOpacity>
-      </View>
-    </LinearGradient>
+          <TouchableOpacity onPress={handleNextScreen} style={styles.skipButton}>
+            <Text style={styles.skipText}>Skip</Text>
+          </TouchableOpacity>
+        </View>
+        
+        {/* Slider only for images and text */}
+        <View style={styles.sliderContainer}>
+          <AppIntroSlider
+            ref={sliderRef}
+            renderItem={renderItem}
+            data={onboardData}
+            onSlideChange={(index) => setActiveIndex(index)}
+            renderPagination={() => null} // Disable built-in pagination
+            showPrevButton={false}
+            showNextButton={false}
+            showDoneButton={false}
+            dotStyle={{display: 'none'}}
+            activeDotStyle={{display: 'none'}}
+          />
+          {renderPagination()} {/* Render our custom pagination */}
+        </View>
+        
+        {/* Fixed Bottom Button */}
+        <View style={styles.btnContainer}>
+          <TouchableOpacity 
+            activeOpacity={0.9} 
+            onPress={() => navigation.replace('UserPermission')}
+            style={styles.btn}
+          >
+            <Text style={styles.btnText}>Log In Now!</Text>
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+    </SafeAreaView>
   );
 };
 
@@ -137,57 +142,64 @@ const styles = StyleSheet.create({
     width: '100%',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop:15,
-    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? responsiveHeight(2) : responsiveHeight(1.5),
+    paddingBottom: responsiveHeight(1),
+    paddingHorizontal: responsiveWidth(5),
   },
   header: {
     flexDirection: 'row',
-    gap: 10,
+    gap: responsiveWidth(2.5),
     alignItems: 'center',
-    
   },
   skipButton: {
-    // alignSelf: 'flex-start',
-    // paddingVertical: 5,
-    // paddingHorizontal: 10,
+    paddingVertical: responsiveHeight(1),
+    paddingHorizontal: responsiveWidth(2),
   },
   headerText: {
     color: '#1C390E',
     fontFamily: 'Poppins-Medium',
     fontSize: responsiveFontSize(2.1),
-    lineHeight: responsiveHeight(2),
+    lineHeight: responsiveHeight(3), // Increased line height to prevent cutting
+  },
+  skipText: {
+    color: '#000',
+    fontFamily: 'Poppins-Medium',
+    fontSize: responsiveFontSize(2.1),
   },
   sliderContainer: {
     flex: 1,
-    marginTop: responsiveHeight(5),
-    // marginBottom: responsiveHeight(10),
+    marginTop: responsiveHeight(2),
   },
   slideContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: responsiveWidth(5),
   },
   mainImage: {
     width: responsiveWidth(70),
-    height: responsiveHeight(25),
+    height: responsiveHeight(30),
     resizeMode: 'contain',
     marginBottom: responsiveHeight(5),
   },
   textWrapper: {
-    // alignItems: 'center',
+    width: '100%',
+    alignItems: 'center',
     paddingHorizontal: responsiveWidth(5),
   },
   text: {
     color: '#213623',
     fontFamily: 'Poppins-Medium',
-    fontSize: responsiveFontSize(3.1),
+    fontSize: responsiveFontSize(2.8),
     fontWeight: '500',
+    textAlign: 'center',
   },
   paginationContainer: {
-    marginBottom: responsiveHeight(7),
     flexDirection: 'row',
-    marginLeft:20,
-    gap: responsiveWidth(5),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: responsiveHeight(4),
+    gap: responsiveWidth(4),
   },
   fillBar: {
     backgroundColor: '#C1DFB7',
@@ -202,15 +214,14 @@ const styles = StyleSheet.create({
   },
   btnContainer: {
     width: '100%',
-    marginBottom: responsiveHeight(3),
+    paddingBottom: responsiveHeight(4),
+    paddingHorizontal: responsiveWidth(5),
   },
   btn: {
-    width: '90%',
+    width: '100%',
     height: responsiveHeight(7),
     backgroundColor: '#335E1F',
     borderRadius: 15,
-    marginHorizontal:20,
-    alignSelf:'center',
     justifyContent: 'center',
     alignItems: 'center',
   },

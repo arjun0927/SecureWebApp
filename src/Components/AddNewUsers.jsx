@@ -156,79 +156,48 @@ const AddNewUsers = () => {
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={styles.form}>
+        <View style={styles.form}>
 
-          {/* {['Name*', 'Email*', 'Password*'].map((label, index) => (
-            <View key={index} style={styles.inputGroup}>
-              <TextInput
-                label={label}
-                value={label === 'Name*' ? name : label === 'Email*' ? email : password}
-                secureTextEntry={label === 'Password*'}
-                onChangeText={(text) =>
-                  label === 'Name*'
-                    ? setName(text)
-                    : label === 'Email*'
-                      ? setEmail(text)
-                      : setPassword(text)
-                }
-                underlineColor="#B9BDCF"
-                activeUnderlineColor="#B9BDCF"
-                textColor="black"
-                style={styles.input}
-              />
-            </View>
-          ))} */}
-          <View style={styles.inputGroup}>
+          <TextInput
+            label="Name*"
+            value={name}
+            onChangeText={setName}
+            underlineColor="#B9BDCF"
+            activeUnderlineColor="#B9BDCF"
+            textColor="black"
+            style={styles.input}
+          />
+          <TextInput
+            label="Email*"
+            value={email}
+            keyboardType="email-address"
+            onChangeText={setEmail}
+            underlineColor="#B9BDCF"
+            activeUnderlineColor="#B9BDCF"
+            textColor="black"
+            style={styles.input}
+          />
+          <View style={styles.passwordContainer}>
             <TextInput
-              label="Name*"
-              value={name}
-              onChangeText={setName}
-              underlineColor="#B9BDCF"
-              activeUnderlineColor="#B9BDCF"
-              textColor="black"
+              label={'Password'}
+              value={password}
+              secureTextEntry={!passwordVisible}
+              onChangeText={setPassword}
+              underlineColor='#B9BDCF'
+              activeUnderlineColor='#B9BDCF'
               style={styles.input}
             />
-          </View>
-
-          {/* Email Input */}
-          <View style={styles.inputGroup}>
-            <TextInput
-              label="Email*"
-              value={email}
-              onChangeText={setEmail}
-              underlineColor="#B9BDCF"
-              activeUnderlineColor="#B9BDCF"
-              textColor="black"
-              style={styles.input}
-            />
-          </View>
-
-          {/* Password Input with Eye Icon */}
-          <View style={styles.inputGroup}>
-            <View style={styles.passwordContainer}>
-              <TextInput
-                label={'Password'}
-                value={password}
-                secureTextEntry={!passwordVisible}
-                onChangeText={setPassword}
-                underlineColor='#B9BDCF'
-                activeUnderlineColor='#B9BDCF'
-                style={styles.input}
+            <TouchableOpacity
+              onPress={() => setPasswordVisible(!passwordVisible)}
+              style={styles.eyeIcon}
+            >
+              <Feather
+                name={passwordVisible ? 'eye' : 'eye-off'}
+                size={18}
+                color="#222327"
               />
-              <TouchableOpacity
-                onPress={() => setPasswordVisible(!passwordVisible)}
-                style={styles.eyeIcon}
-              >
-                <Feather
-                  name={passwordVisible ? 'eye' : 'eye-off'}
-                  size={18}
-                  color="#222327"
-                />
-              </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
           </View>
-
-          {/* Accordion for Multiple Table Selection */}
           <View style={styles.accordionContainer}>
             <TouchableOpacity onPress={() => setIsAccordionOpen(!isAccordionOpen)}>
               <View style={styles.accordionHeader}>
@@ -299,7 +268,7 @@ const AddNewUsers = () => {
               </View>
             )}
           </View>
-        </ScrollView>
+        </View>
 
         {/* Save Button */}
         <View style={styles.footer}>
@@ -343,7 +312,9 @@ const styles = StyleSheet.create({
     marginLeft: 5,
   },
   form: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
+    flex: 1,
+    flexDirection: 'column',
     backgroundColor: '#FFF',
     borderRadius: 15,
     padding: 15,
@@ -351,24 +322,22 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   passwordContainer: {
-		flex:1,
-		flexDirection: 'row',
-		alignItems: 'center',
-		paddingHorizontal: 5,
-	},
-	eyeIcon: {
-		padding: 5,
-	},
-  inputGroup: {
-    marginBottom: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 5,
   },
   input: {
-		height: 40,
-		color: 'black',
-		fontSize: responsiveFontSize(2),
-		backgroundColor: 'white',
-		flex:1,
-	},
+    width: '100%',
+    color: '#000',
+    fontSize: responsiveFontSize(2),
+    backgroundColor: 'white',
+    fontFamily: 'Poppins-Regular',
+    marginBottom: 15,
+  },
   accordionContent: {
     paddingTop: 10,
     borderWidth: 0.5,

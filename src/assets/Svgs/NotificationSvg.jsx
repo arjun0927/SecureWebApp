@@ -1,7 +1,7 @@
 import React from 'react';
 import Svg, { Path } from 'react-native-svg';
 
-const NotificationSvg = ({ width = 21, height = 18, fill = "none", strokeColor = "#383535", strokeWidth = 1.28883 }) => {
+const NotificationSvg = ({ width , height , fill = "none", strokeColor = "#383535", strokeWidth = 1.28883 }) => {
   return (
     <Svg xmlns="http://www.w3.org/2000/svg" width={width} height={height} viewBox="0 0 21 18" fill={fill}>
       <Path

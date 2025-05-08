@@ -13,19 +13,19 @@ import {
 } from 'react-native';
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import Feather from 'react-native-vector-icons/Feather';
+import AntDesign from 'react-native-vector-icons/AntDesign';
 import SearchSvg from '../../assets/Svgs/SearchSvg';
 import DeleteSvg2 from '../../assets/Svgs/DeleteSvg2';
 import DeleteSvg from '../../assets/Svgs/DeleteSvg';
 import AddUsersSvg from '../../assets/Svgs/AddUsersSvg';
-import Circle from '../../assets/Svgs/Circle';
-import EditSvg from '../../assets/Svgs/EditSvg';
 import DeleteModal from './DeleteModal';
-import RadioSelectedCheckbox from '../../assets/Svgs/RadioSelectedCheckbox';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons'
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useGlobalContext } from '../../Context/GlobalContext';
-import { responsiveWidth } from 'react-native-responsive-dimensions';
+import { responsiveFontSize, responsiveWidth } from 'react-native-responsive-dimensions';
 import { UIActivityIndicator } from 'react-native-indicators';
+import ImageModal from '../ImageModal';
+import getToken from '../getToken';
 
 // Get screen dimensions for responsive calculations
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -36,11 +36,13 @@ const scaleFactor = SCREEN_WIDTH / 375; // Based on standard iPhone width
 // Responsive sizing functions
 const rs = (size) => size * scaleFactor; // Responsive size
 const rf = (size) => Math.round(size * scaleFactor); // Responsive font size
+const regex = /https:\/\/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]{10,})\/view\?usp=drivesdk/;
+
 
 // Row data component to reduce re-renders
-const DataRow = React.memo(({ field, value, isLast }) => {
+const DataRow = React.memo(({ field, value, isLast, setVisible, visible, setImageUri, imageUri }) => {
 	if (field === '__ID') return null;
-	
+
 	return (
 		<View style={[styles.dataRow, isLast && styles.noBorder]}>
 			<Text
@@ -50,24 +52,47 @@ const DataRow = React.memo(({ field, value, isLast }) => {
 			>
 				{field}
 			</Text>
-			<Text
-				style={styles.rowValue}
-				numberOfLines={1}
-				ellipsizeMode="tail"
-			>
-				{value}
-			</Text>
+
+			{
+				regex.test(value) ? (
+					<TouchableOpacity
+						onPress={() => {
+							setVisible(true);
+							setImageUri(value);
+						}}
+						style={{
+							flex: 1,
+							fontSize: rf(14),
+							fontFamily: 'Poppins-Regular',
+						}}
+					>
+						<Text style={{ color: 'blue', textDecorationLine: 'underline' }}>
+							Click here
+						</Text>
+					</TouchableOpacity>
+
+				) : (
+					<Text style={styles.rowValue}
+						numberOfLines={1}
+						ellipsizeMode="tail"
+					>
+						{value}
+					</Text>
+				)
+			}
+
+
 		</View>
 	);
 });
 
 // Separate component for action buttons to prevent unnecessary rerenders
-const TableRowActions = React.memo(({ 
-	index, 
-	handleCircleSelect, 
-	isSelected, 
-	onEdit, 
-	onDelete 
+const TableRowActions = React.memo(({
+	index,
+	handleCircleSelect,
+	isSelected,
+	onEdit,
+	onDelete
 }) => {
 	return (
 		<View style={styles.cardHeader}>
@@ -79,10 +104,10 @@ const TableRowActions = React.memo(({
 					<View>
 						{isSelected ? (
 							<View style={styles.selectedCircle}>
-								<RadioSelectedCheckbox />
+								<AntDesign name='checkcircle' size={responsiveFontSize(2)} color={'#4D8733'} />
 							</View>
 						) : (
-							<Circle />
+							<Feather name='circle' size={responsiveFontSize(2)} color={'black'} />
 						)}
 					</View>
 				</TouchableOpacity>
@@ -93,7 +118,7 @@ const TableRowActions = React.memo(({
 					hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
 				>
 					<View style={styles.headerRightIcon}>
-						<EditSvg />
+						<MaterialIcons name={'edit'} size={responsiveFontSize(2)} color={'black'} />
 					</View>
 				</TouchableOpacity>
 				<TouchableOpacity
@@ -101,7 +126,7 @@ const TableRowActions = React.memo(({
 					hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
 				>
 					<View style={styles.headerRightIcon}>
-						<DeleteSvg />
+						<DeleteSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)} />
 					</View>
 				</TouchableOpacity>
 			</View>
@@ -110,13 +135,13 @@ const TableRowActions = React.memo(({
 });
 
 // Separate component for the "View More/Less" button
-const ViewMoreButton = React.memo(({ 
-	isExpanded, 
-	onToggle, 
-	show 
+const ViewMoreButton = React.memo(({
+	isExpanded,
+	onToggle,
+	show
 }) => {
 	if (!show) return null;
-	
+
 	return (
 		<TouchableOpacity
 			onPress={onToggle}
@@ -148,43 +173,52 @@ const TableRow = React.memo(({
 	handleCircleSelect,
 	selectedIndices,
 	handleEdit,
-	handleDeletePress
+	handleDeletePress,
+	setVisible,
+	visible,
+	setImageUri,
+	imageUri,
 }) => {
 	// Determine which fields to display
-	const fieldsToDisplay = expandedIndex === index 
-		? fieldData 
+	const fieldsToDisplay = expandedIndex === index
+		? fieldData
 		: fieldData.slice(0, initialFieldsToShow);
-	
+
 	// Check if there are more fields to show
 	const hasMoreFields = fieldData.length > initialFieldsToShow;
-	
+
 	// Check if the current row is selected
 	const isSelected = selectedIndices.includes(index);
-	
+
 	return (
 		<View style={styles.form}>
-			<TableRowActions 
+			<TableRowActions
 				index={index}
 				handleCircleSelect={handleCircleSelect}
 				isSelected={isSelected}
 				onEdit={() => handleEdit(item, index)}
 				onDelete={() => handleDeletePress(index)}
+
 			/>
-			
+
 			<View style={styles.headerLine} />
-			
+
 			<View>
 				{fieldsToDisplay.map((field, fieldIndex) => (
-					<DataRow 
+					<DataRow
 						key={field}
 						field={field}
 						value={item[field]}
 						isLast={fieldIndex === fieldsToDisplay.length - 1}
+						setVisible={setVisible}
+						visible={visible}
+						setImageUri={setImageUri}
+						imageUri={imageUri}
 					/>
 				))}
 			</View>
 
-			<ViewMoreButton 
+			<ViewMoreButton
 				isExpanded={expandedIndex === index}
 				onToggle={() => toggleAccordion(index)}
 				show={hasMoreFields}
@@ -197,7 +231,7 @@ const TableRow = React.memo(({
 	return (
 		prevProps.item === nextProps.item &&
 		prevProps.expandedIndex === nextProps.expandedIndex &&
-		prevProps.selectedIndices.includes(prevProps.index) === 
+		prevProps.selectedIndices.includes(prevProps.index) ===
 		nextProps.selectedIndices.includes(nextProps.index)
 	);
 });
@@ -213,6 +247,8 @@ const AllUserData = ({ navigation, route }) => {
 	const [isSearchVisible, setSearchVisible] = useState(false);
 	const [deleteTableLoader, setDeleteTableLoader] = useState(false);
 	const [searchTerm, setSearchTerm] = useState('');
+	const [imageUri, setImageUri] = useState('');
+	const [visible, setVisible] = useState(false);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [hasMoreData, setHasMoreData] = useState(true);
 	const animation = useRef(new Animated.Value(0)).current;
@@ -222,7 +258,6 @@ const AllUserData = ({ navigation, route }) => {
 
 	// Number of fields to display initially
 	const initialFieldsToShow = 3;
-	const itemsPerPage = 10; // Number of items to load per page
 
 	const { id, tableAccess, tableName } = route.params;
 	const {
@@ -247,7 +282,7 @@ const AllUserData = ({ navigation, route }) => {
 	// Initial data fetch - use a cleanup function to prevent state updates after unmount
 	useEffect(() => {
 		let isMounted = true;
-		
+
 		const fetchData = async () => {
 			if (hasFetchedData.current) return;
 
@@ -271,7 +306,7 @@ const AllUserData = ({ navigation, route }) => {
 		};
 
 		fetchData();
-		
+
 		return () => {
 			isMounted = false;
 		};
@@ -280,13 +315,13 @@ const AllUserData = ({ navigation, route }) => {
 	// Load more data function - optimized with proper state handling
 	const loadMoreData = useCallback(async () => {
 		if (!hasMoreData || loadingMore) return;
-		
+
 		try {
 			setLoadingMore(true);
 			// Here you would implement your pagination logic
 			// Simulating a delay for demonstration
 			await new Promise(resolve => setTimeout(resolve, 500));
-			
+
 			// Update the current page
 			setCurrentPage(prevPage => {
 				const newPage = prevPage + 1;
@@ -314,7 +349,7 @@ const AllUserData = ({ navigation, route }) => {
 
 	// Handle item selection - optimized
 	const handleCircleSelect = useCallback((index) => {
-		setSelectedIndices(prevIndices => 
+		setSelectedIndices(prevIndices =>
 			prevIndices.includes(index)
 				? prevIndices.filter(i => i !== index)
 				: [...prevIndices, index]
@@ -328,7 +363,10 @@ const AllUserData = ({ navigation, route }) => {
 			id: id,
 			__ID: item.__ID,
 			userItem: item,
-			typeInfo: typeInfo
+			typeInfo: typeInfo,
+			screenInfo: {
+				screen: 'AllUserData',
+			}
 		});
 	}, [navigation, fieldData, id, typeInfo]);
 
@@ -352,7 +390,7 @@ const AllUserData = ({ navigation, route }) => {
 			}
 
 			if (idsToDelete.length > 0) {
-				const token = await AsyncStorage.getItem('token');
+				const token = await getToken()
 				setDeleteTableLoader(true);
 
 				const response = await axios.post(
@@ -362,6 +400,7 @@ const AllUserData = ({ navigation, route }) => {
 				);
 
 				if (response) {
+					console.log('Data deleted successfully:', response);
 					showToast({
 						type: 'SUCCESS',
 						message: 'Data deleted successfully'
@@ -444,15 +483,15 @@ const AllUserData = ({ navigation, route }) => {
 		return userData.filter(item => {
 			// Quick early return optimization
 			if (!item) return false;
-			
+
 			// Use some() for better performance, short-circuits once found
 			return Object.entries(item).some(([key, value]) => {
 				// Skip filtering on __ID field
 				if (key === '__ID') return false;
-				
+
 				// Handle null/undefined values
 				if (value == null) return false;
-				
+
 				// Convert value to string and check if it includes search term
 				return String(value).toLowerCase().includes(searchTerm.toLowerCase());
 			});
@@ -467,15 +506,15 @@ const AllUserData = ({ navigation, route }) => {
 
 	// Optimize FlatList rendering with constant item heights
 	const getItemLayout = useCallback((_, index) => ({
-		length: rs(200), 
+		length: rs(200),
 		offset: rs(200) * index,
 		index,
 	}), []);
 
 	// Extract ID for key with fallback - optimized
-	const keyExtractor = useCallback((item) => 
-		(item.__ID?.toString() || String(Math.random())), 
-	[]);
+	const keyExtractor = useCallback((item) =>
+		(item.__ID?.toString() || String(Math.random())),
+		[]);
 
 	// Render item - fully memoized
 	const renderItem = useCallback(({ item, index }) => (
@@ -490,6 +529,11 @@ const AllUserData = ({ navigation, route }) => {
 			selectedIndices={selectedIndices}
 			handleEdit={handleEdit}
 			handleDeletePress={handleDeletePress}
+			setVisible={setVisible}
+			visible={visible}
+			setImageUri={setImageUri}
+			imageUri={imageUri}
+
 		/>
 	), [
 		expandedIndex,
@@ -513,7 +557,7 @@ const AllUserData = ({ navigation, route }) => {
 	// Footer with loading indicator - memoized
 	const renderFooter = useCallback(() => {
 		if (!loadingMore) return null;
-		
+
 		return (
 			<View style={styles.footerLoader}>
 				<UIActivityIndicator color={'#4D8733'} size={rs(20)} />
@@ -557,7 +601,7 @@ const AllUserData = ({ navigation, route }) => {
 							onPress={toggleSearch}
 							hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
 						>
-							<SearchSvg />
+							<SearchSvg width={rs(20)} height={rs(20)} />
 						</TouchableOpacity>
 
 						<Animated.View style={[
@@ -586,7 +630,7 @@ const AllUserData = ({ navigation, route }) => {
 								styles.svgContainer,
 								{ opacity: selectedIndices.length > 0 ? 1 : 0.5 }
 							]}>
-								<DeleteSvg2 strokeColor={'#4D8733'} fillColor={'#4D8733'} />
+								<DeleteSvg2 strokeColor={'#4D8733'} fillColor={'#4D8733'} width={rs(22)} height={rs(22)} />
 							</View>
 						</TouchableOpacity>
 
@@ -600,7 +644,7 @@ const AllUserData = ({ navigation, route }) => {
 								hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
 							>
 								<View style={styles.addUserContainer}>
-									<AddUsersSvg />
+									<AddUsersSvg width={rs(20)} height={rs(20)} />
 									<Text style={styles.addUserContainerText}>Add New Data</Text>
 								</View>
 							</TouchableOpacity>
@@ -642,8 +686,8 @@ const AllUserData = ({ navigation, route }) => {
 				{modalVisible && (
 					<DeleteModal
 						modalVisible={modalVisible}
-						deleteTableLoader={deleteTableLoader}
-						setModalVisible={setModalVisible}
+						deleteLoader={deleteTableLoader}
+						setDeleteLoader={setModalVisible}
 						handleDelete={handleDelete}
 						handleCancel={() => {
 							setModalVisible(false);
@@ -652,6 +696,17 @@ const AllUserData = ({ navigation, route }) => {
 						selectedIndices={selectedIndices}
 					/>
 				)}
+				{
+					visible && (
+						<ImageModal
+							visible={visible}
+							imageUri={imageUri}
+							setImageUri={setImageUri}
+							onClose={() => setVisible(false)}
+						/>
+					)
+				}
+
 			</View>
 		</KeyboardAvoidingView>
 	);
@@ -678,6 +733,7 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		alignItems: 'center',
 		paddingHorizontal: rs(15),
+		paddingTop: rs(10),
 	},
 	backButton: {
 		flexDirection: 'row',
@@ -685,13 +741,13 @@ const styles = StyleSheet.create({
 	},
 	usersText: {
 		color: '#848486',
-		fontSize: rf(16),
+		fontSize: rf(14),
 		fontFamily: 'Poppins-Medium',
 		marginRight: rs(5),
 	},
 	headerTitle: {
 		color: '#222327',
-		fontSize: rf(18),
+		fontSize: rf(16),
 		fontFamily: 'Poppins-Medium',
 	},
 	actionsBar: {
@@ -752,7 +808,7 @@ const styles = StyleSheet.create({
 		borderRadius: rs(10),
 	},
 	addUserContainerText: {
-		fontSize: rf(15),
+		fontSize: rf(14),
 		color: 'black',
 		fontFamily: 'Poppins-Medium',
 	},
@@ -822,13 +878,13 @@ const styles = StyleSheet.create({
 	rowLabel: {
 		flex: 1,
 		color: '#222327',
-		fontSize: rf(14),
+		fontSize: rf(13),
 		fontFamily: 'Poppins-Regular',
 	},
 	rowValue: {
 		flex: 1,
 		color: '#767A8D',
-		fontSize: rf(14),
+		fontSize: rf(13),
 		fontFamily: 'Poppins-Regular',
 	},
 	viewMoreContainer: {

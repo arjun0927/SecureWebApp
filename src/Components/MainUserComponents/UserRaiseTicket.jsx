@@ -13,7 +13,7 @@ import {
 import React, { useEffect, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
-import { responsiveFontSize } from 'react-native-responsive-dimensions';
+import { responsiveFontSize, responsiveHeight } from 'react-native-responsive-dimensions';
 import { ActivityIndicator, TextInput } from 'react-native-paper';
 import { launchImageLibrary } from 'react-native-image-picker';
 import axios from 'axios';
@@ -133,10 +133,10 @@ const UserRaiseTicket = () => {
 			<View style={styles.container}>
 				<View style={styles.header}>
 					<TouchableOpacity
-						style={{ flexDirection: 'row' }}
+						style={{ flexDirection: 'row' , alignItems:'center' }}
 						onPress={() => navigation.goBack()}
 					>
-						<Feather name="chevron-left" size={24} color="black" />
+						<Feather name="chevron-left" size={responsiveFontSize(2.3)} color="black" />
 
 						<Text style={styles.headerTitle}>Raise Tickets</Text>
 					</TouchableOpacity>
@@ -144,23 +144,14 @@ const UserRaiseTicket = () => {
 
 				<ScrollView contentContainerStyle={styles.form}>
 					<View style={styles.inputGroup}>
-
 						<TextInput
 							style={styles.input}
 							value={name}
 							onChangeText={setName}
 							label='Customer Name*'
 							underlineColor='#B9BDCF'
-							activeUnderlineColor='#B9BDCF'
+							activeUnderlineColor='#767A8D'
 							textColor='black'
-							style={[
-								{
-									fontSize: 18,
-									height: 50,
-									paddingHorizontal: 5,
-									backgroundColor: 'white',
-								},
-							]}
 						/>
 					</View>
 					<View style={styles.inputGroup}>
@@ -173,15 +164,7 @@ const UserRaiseTicket = () => {
 							underlineColor='#B9BDCF'
 							activeUnderlineColor='#B9BDCF'
 							textColor='black'
-							style={[
-								{
-									fontSize: 18,
-									height: 50,
-									paddingHorizontal: 5,
-									backgroundColor: 'white',
-								},
-							]}
-
+					
 						/>
 					</View>
 					<View style={styles.inputGroup}>
@@ -193,14 +176,7 @@ const UserRaiseTicket = () => {
 							underlineColor='#B9BDCF'
 							activeUnderlineColor='#B9BDCF'
 							textColor='black'
-							style={[
-								{
-									fontSize: 18,
-									height: 50,
-									paddingHorizontal: 5,
-									backgroundColor: 'white',
-								},
-							]}
+							
 
 						/>
 					</View>
@@ -213,14 +189,7 @@ const UserRaiseTicket = () => {
 							underlineColor='#B9BDCF'
 							activeUnderlineColor='#B9BDCF'
 							textColor='black'
-							style={[
-								{
-									fontSize: 18,
-									height: 50,
-									paddingHorizontal: 5,
-									backgroundColor: 'white',
-								},
-							]}
+							
 						/>
 					</View>
 					<View style={styles.uploadProblemContainer}>
@@ -301,21 +270,14 @@ const styles = StyleSheet.create({
 		backgroundColor: '#F4FAF4',
 	},
 	header: {
-		flexDirection: 'row',
-		alignItems: 'center',
 		marginTop: 20,
 		marginBottom: 10,
 		marginHorizontal: 10,
 	},
-	usersText: {
-		color: '#848486',
-		fontSize: responsiveFontSize(2),
-		fontWeight: '400',
-	},
 	headerTitle: {
 		color: '#222327',
-		fontSize: responsiveFontSize(2.3),
-		fontWeight: '400',
+		fontSize: responsiveFontSize(2),
+		fontFamily:'Poppins-Medium',
 		marginLeft: 5,
 	},
 	form: {
@@ -329,29 +291,17 @@ const styles = StyleSheet.create({
 	inputGroup: {
 		marginBottom: 15,
 	},
-	label: {
-		color: '#222327',
-		fontSize: responsiveFontSize(2),
-		fontWeight: '400',
-	},
-	label1: {
-		color: '#767A8D',
-		fontSize: responsiveFontSize(1.6),
-		fontWeight: '400',
-	},
 	input: {
-		height: 40,
+		height: responsiveHeight(5),
 		borderColor: '#B9BDCF',
 		borderBottomWidth: 1,
 		paddingLeft: 10,
-		color: 'black',
-		fontSize: responsiveFontSize(2.1),
+		color: 'gray',
+		fontSize: responsiveFontSize(1.8),
+		backgroundColor:'#FFF',
+		fontFamily: 'Poppins-Regular',
 	},
 	uploadProblemContainer: {
-		// backgroundColor: 'red',
-		flexDirection: 'row',
-		justifyContent: 'space-between',
-		alignItems: 'center',
 		paddingHorizontal: 35,
 		paddingVertical: 15,
 		borderWidth: 1,

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { responsiveFontSize } from 'react-native-responsive-dimensions';
+import { responsiveFontSize, responsiveWidth } from 'react-native-responsive-dimensions';
 import DeleteSvg from '../../assets/Svgs/DeleteSvg';
 import DownArrowSvg from '../../assets/Svgs/DownArrowSvg';
 import TopArrowSvg from '../../assets/Svgs/TopArrowSvg';
@@ -15,8 +15,8 @@ const UserTableCard = ({ data, tableAccess }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [deleteTableLoader, setDeleteTableLoader] = useState(false);
-  const {getTables, showToast} = useGlobalContext()
- 
+  const { getTables, showToast } = useGlobalContext()
+
   const toggleOpen = () => setIsOpen((prev) => !prev);
 
   const navigation = useNavigation();
@@ -34,7 +34,7 @@ const UserTableCard = ({ data, tableAccess }) => {
         }
       );
       // console.log('delete Response ', response.data)
-  
+
       if (response.data) {
         await getTables();
         showToast({
@@ -52,7 +52,7 @@ const UserTableCard = ({ data, tableAccess }) => {
 
   return (
     <View>
-      <TouchableOpacity onPress={() => navigation.navigate('AllUserData', { id: data?._id, tableAccess: tableAccess , tableName: data?.tableName})}>
+      <TouchableOpacity onPress={() => navigation.navigate('AllUserData', { id: data?._id, tableAccess: tableAccess, tableName: data?.tableName })}>
         <View style={[styles.header]}>
           <View style={styles.headerLeft}>
             <Text style={styles.title}>{data?.tableName}</Text>
@@ -62,10 +62,10 @@ const UserTableCard = ({ data, tableAccess }) => {
               style={styles.iconButton}
               onPress={() => setModalVisible(true)}
             >
-              <DeleteSvg />
+              <DeleteSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)} />
             </TouchableOpacity>
             <TouchableOpacity onPress={toggleOpen} style={styles.toggleButton}>
-              {isOpen ? <DownArrowSvg /> : <TopArrowSvg />}
+              {isOpen ? <DownArrowSvg width={responsiveFontSize(1.6)} height={responsiveFontSize(1.6)} /> : <TopArrowSvg width={responsiveFontSize(1.6)} height={responsiveFontSize(1.6)} />}
             </TouchableOpacity>
           </View>
         </View>
@@ -101,21 +101,12 @@ const UserTableCard = ({ data, tableAccess }) => {
 export default UserTableCard;
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: 20,
-  },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    elevation: 3,
-    marginBottom: 20,
-  },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    width: '100%',
     borderBottomWidth: 1,
     borderColor: '#FFFFFF',
   },
@@ -132,25 +123,19 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 20,
   },
   title: {
     fontFamily: 'Poppins-Regular',
-    fontSize: 18,
+    fontSize: responsiveFontSize(1.7),
     color: 'black',
     lineHeight: 32,
   },
   iconButton: {
     backgroundColor: '#EEF5ED',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  toggleButton: {
-    width: 35,
-    height: 39,
+    borderRadius: responsiveWidth(3.25),
+    width: responsiveWidth(6.5),
+    height: responsiveWidth(6.5),
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -167,15 +152,15 @@ const styles = StyleSheet.create({
   rowLabel: {
     width: '50%',
     color: '#222327',
-    fontSize: responsiveFontSize(1.7),
-    fontFamily: 'Poppins',
+    fontSize: responsiveFontSize(1.6),
+    fontFamily: 'Poppins-Regular',
     fontWeight: '400',
   },
   rowValue: {
     flex: 1,
     color: '#578356',
     fontSize: responsiveFontSize(1.5),
-    fontFamily: 'Poppins',
+    fontFamily: 'Poppins-Regular',
     fontWeight: '400',
   },
 });
