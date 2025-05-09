@@ -24,6 +24,7 @@ import MainEditUser from './Components/MainUserComponents/MainEditUser';
 import MainUserOtpScreen from './Screens/MainUserLogin.jsx/MainUserOtpScreen';
 import UserRaiseTicket from './Components/MainUserComponents/UserRaiseTicket';
 import UserThreeDotsModal from './Components/MainUserComponents/UserThreeDotsModal';
+import NewNotification from './Components/NewNotification';
 
 
 const Stack = createNativeStackNavigator();
@@ -42,7 +43,8 @@ const AppNavigator = () => {
 				<Stack.Screen name='AddNewUsers' component={AddNewUsers} options={{ headerShown: false, animation: 'slide_from_right'}} />
 				<Stack.Screen name='EditUser' component={EditUser} options={{ headerShown: false, animation: 'slide_from_right'}} />
 				<Stack.Screen name='RaiseTicket' component={RaiseTicket} options={{ headerShown: false, animation: 'slide_from_right'}} />
-				<Stack.Screen name='Notification' component={Notification} options={{ headerShown: false, animation: 'slide_from_right'}} />
+				{/* <Stack.Screen name='Notification' component={Notification} options={{ headerShown: false, animation: 'slide_from_right'}} /> */}
+				<Stack.Screen name='NewNotification' component={NewNotification} options={{ headerShown: false, animation: 'slide_from_right'}} />
 				<Stack.Screen name='AllTableData' component={AllTableData} options={{ headerShown: false, animation: 'slide_from_right'}} />
 				<Stack.Screen name='TablesAddNewData' component={TablesAddNewData} options={{ headerShown: false, animation: 'slide_from_right'}} />
 				<Stack.Screen name='EditTables' component={EditTables} options={{ headerShown: false, animation: 'slide_from_right'}} />

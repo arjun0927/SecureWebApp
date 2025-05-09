@@ -27,9 +27,8 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const scaleFactor = SCREEN_WIDTH / 375;
 
 const rs = (size) => size * scaleFactor; // Responsive size
-const rf = (size) => Math.round(size * scaleFactor); // Responsive font size
+const rf = (size) => Math.round(size * scaleFactor); 
 
-// Floating Accordion Component
 const FloatingAccordion = ({ field, dropdownItems, formData, handleInputChange }) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const animatedHeight = useRef(new Animated.Value(0)).current;
@@ -173,6 +172,8 @@ const UserEditData = ({ route }) => {
 		try {
 			const token = await getToken();
 
+			console.log('formData',formData)
+
 			const response = await axios.post(
 				`https://secure.ceoitbox.com/api/updateTableData/${id}`,
 				{
@@ -187,7 +188,11 @@ const UserEditData = ({ route }) => {
 				}
 			);
 
-			if (response.data.status === 200) {
+			console.log('response',response.data)
+
+			
+			
+			if (response.data) {
 				// Fetch updated data
 				await getAllTableData(id);
 				navigation.goBack();
@@ -196,6 +201,14 @@ const UserEditData = ({ route }) => {
 					type: 'SUCCESS',
 					message: 'Data Updated Successfully',
 				});
+				return;
+			}
+			if (response?.data?.error){
+				showToast({
+					type: 'ERROR',
+					message: response?.data?.error,
+				});
+				return;
 			}
 		} catch (error) {
 			console.error('Error saving data:', error.response?.data || error.message);

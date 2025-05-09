@@ -167,6 +167,7 @@ const UserAddNewData = ({ route }) => {
 				// Reset form state
 				setFormData({});
 				setImageUris({});
+				navigation.goBack();
 
 				// Clear input fields
 				Object.keys(inputRefs.current).forEach((key) => {

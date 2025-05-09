@@ -38,7 +38,6 @@ const rs = (size) => size * scaleFactor; // Responsive size
 const rf = (size) => Math.round(size * scaleFactor); // Responsive font size
 const regex = /https:\/\/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]{10,})\/view\?usp=drivesdk/;
 
-// Row data component to reduce re-renders
 const DataRow = React.memo(({ field, value, isLast, setVisible, setImageUri }) => {
 	if (field === '__ID') return null;
 

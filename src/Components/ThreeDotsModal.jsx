@@ -24,7 +24,7 @@ const ThreeDotsModal = ({ visible, onClose }) => {
 	};
 
 	const handleWhatsNew = () => {
-		navigation.navigate('Notification');
+		navigation.navigate('NewNotification');
 		onClose();
 	};
 

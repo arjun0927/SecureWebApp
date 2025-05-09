@@ -162,7 +162,7 @@ const UserRaiseTicket = () => {
 							onChangeText={setEmail}
 							label='Customer Email*'
 							underlineColor='#B9BDCF'
-							activeUnderlineColor='#B9BDCF'
+							activeUnderlineColor='#767A8D'
 							textColor='black'
 					
 						/>
@@ -174,7 +174,7 @@ const UserRaiseTicket = () => {
 							onChangeText={setPassword}
 							label='Phone*'
 							underlineColor='#B9BDCF'
-							activeUnderlineColor='#B9BDCF'
+							activeUnderlineColor='#767A8D'
 							textColor='black'
 							
 
@@ -187,7 +187,7 @@ const UserRaiseTicket = () => {
 							onChangeText={setIssueType}
 							label='Issue Statement*'
 							underlineColor='#B9BDCF'
-							activeUnderlineColor='#B9BDCF'
+							activeUnderlineColor='#767A8D'
 							textColor='black'
 							
 						/>
@@ -289,14 +289,11 @@ const styles = StyleSheet.create({
 		marginVertical: 10,
 	},
 	inputGroup: {
-		marginBottom: 15,
+		marginBottom: 10,
 	},
 	input: {
 		height: responsiveHeight(5),
-		borderColor: '#B9BDCF',
-		borderBottomWidth: 1,
-		paddingLeft: 10,
-		color: 'gray',
+		// color: 'gray',
 		fontSize: responsiveFontSize(1.8),
 		backgroundColor:'#FFF',
 		fontFamily: 'Poppins-Regular',
