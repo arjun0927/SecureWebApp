@@ -23,9 +23,6 @@ const RaiseTicket = () => {
 
 	const navigation = useNavigation();
 
-	// Add hardware back button handler
-	
-
 	const handleSave = () => {
 		console.log('Saved');
 	};

@@ -7,9 +7,9 @@ import {
 	KeyboardAvoidingView,
 	Platform,
 	Animated,
-	FlatList,
 	StatusBar,
 	Dimensions,
+	FlatList,
 } from 'react-native';
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import Feather from 'react-native-vector-icons/Feather';
@@ -26,6 +26,7 @@ import { responsiveFontSize, responsiveWidth } from 'react-native-responsive-dim
 import { UIActivityIndicator } from 'react-native-indicators';
 import ImageModal from '../ImageModal';
 import getToken from '../getToken';
+import { FlashList } from "@shopify/flash-list";
 
 // Get screen dimensions for responsive calculations
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -406,8 +407,7 @@ const AllUserData = ({ navigation, route }) => {
 						message: 'Data deleted successfully'
 					});
 
-					// Update userData by creating a new array without deleted items
-					// This is more efficient than filter for large arrays
+
 					const newData = [...userData];
 					const newDataFiltered = newData.filter((_, idx) => !indicesToDelete.includes(idx));
 					setUserData(newDataFiltered);
@@ -428,7 +428,6 @@ const AllUserData = ({ navigation, route }) => {
 		}
 	}, [selectedIndices, selectedIndex, userData, id, showToast, setUserData]);
 
-	// Toggle search animation - optimized
 	const toggleSearch = useCallback(() => {
 		if (isSearchVisible) {
 			Animated.parallel([
@@ -483,8 +482,6 @@ const AllUserData = ({ navigation, route }) => {
 		return userData.filter(item => {
 			// Quick early return optimization
 			if (!item) return false;
-
-			// Use some() for better performance, short-circuits once found
 			return Object.entries(item).some(([key, value]) => {
 				// Skip filtering on __ID field
 				if (key === '__ID') return false;
@@ -497,6 +494,14 @@ const AllUserData = ({ navigation, route }) => {
 			});
 		});
 	}, [userData, searchTerm]);
+
+	// useEffect(()=>{
+	// 	console.log('filteredData', filteredData)
+	// },[filteredData])
+
+	const newFilteredData = filteredData.slice(0, 10);
+
+	// console.log('newFilteredData', newFilteredData)
 
 	// Handle individual row delete button press - optimized
 	const handleDeletePress = useCallback((index) => {
@@ -659,7 +664,7 @@ const AllUserData = ({ navigation, route }) => {
 					</View>
 				) : (
 					<View style={styles.listContainer}>
-						<FlatList
+						{/* <FlatList
 							ref={flatListRef}
 							data={filteredData}
 							renderItem={renderItem}
@@ -678,6 +683,28 @@ const AllUserData = ({ navigation, route }) => {
 								filteredData.length === 0 ? { flex: 1 } : { paddingBottom: rs(20) }
 							}
 							showsVerticalScrollIndicator={false}
+						/> */}
+						<FlashList
+							data={newFilteredData}
+							renderItem={renderItem}
+							keyExtractor={keyExtractor}
+							getItemLayout={getItemLayout}
+							estimatedItemSize={120}
+							renderFooter={renderFooter}
+							ListEmptyComponent={ListEmptyComponent}
+						// removeClippedSubviews={true}
+						// maxToRenderPerBatch={10}
+						// windowSize={5}
+						// initialNumToRender={5}
+						// updateCellsBatchingPeriod={50}
+						// ListEmptyComponent={ListEmptyComponent}
+						// ListFooterComponent={renderFooter}
+						// onEndReached={handleEndReached}
+						// onEndReachedThreshold={0.5}
+						// contentContainerStyle={
+						// 	filteredData.length === 0 ? { flex: 1 } : { paddingBottom: rs(20) }
+						// }
+						// showsVerticalScrollIndicator={false}
 						/>
 					</View>
 				)}
@@ -718,7 +745,7 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: '#F4FAF4',
-		paddingTop: 10,
+		// paddingTop: 10,
 	},
 	loaderContainer: {
 		flex: 1,
@@ -728,12 +755,14 @@ const styles = StyleSheet.create({
 	},
 	listContainer: {
 		flex: 1,
+		marginBottom: rs(20)
 	},
 	header: {
 		flexDirection: 'row',
 		alignItems: 'center',
+		marginTop: Platform.OS === 'ios' ? rs(40) : rs(10),
+		marginBottom: rs(10),
 		paddingHorizontal: rs(15),
-		paddingTop: rs(10),
 	},
 	backButton: {
 		flexDirection: 'row',
@@ -742,19 +771,20 @@ const styles = StyleSheet.create({
 	usersText: {
 		color: '#848486',
 		fontSize: rf(14),
-		fontFamily: 'Poppins-Medium',
-		marginRight: rs(5),
+		fontFamily: 'Poppins-Regular',
+		marginRight: rs(2),
 	},
 	headerTitle: {
 		color: '#222327',
 		fontSize: rf(16),
 		fontFamily: 'Poppins-Medium',
+		marginLeft: rs(2),
 	},
 	actionsBar: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		alignItems: 'center',
-		marginVertical: rs(15),
+		marginVertical: rs(5),
 		marginHorizontal: rs(15),
 	},
 	leftActions: {

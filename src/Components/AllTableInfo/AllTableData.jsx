@@ -646,6 +646,26 @@ const AllTableData = ({ navigation, route }) => {
 					</View>
 				) : (
 					<View style={styles.listContainer}>
+						{/* <FlatList
+							ref={flatListRef}
+							data={filteredData}
+							renderItem={renderItem}
+							keyExtractor={keyExtractor}
+							getItemLayout={getItemLayout}
+							removeClippedSubviews={true}
+							maxToRenderPerBatch={10}
+							windowSize={5}
+							initialNumToRender={5}
+							updateCellsBatchingPeriod={50}
+							ListEmptyComponent={ListEmptyComponent}
+							ListFooterComponent={renderFooter}
+							onEndReached={handleEndReached}
+							onEndReachedThreshold={0.5}
+							contentContainerStyle={
+								filteredData.length === 0 ? { flex: 1 } : { paddingBottom: rs(20) }
+							}
+							showsVerticalScrollIndicator={false}
+						/> */}
 						<FlatList
 							ref={flatListRef}
 							data={filteredData}
@@ -718,8 +738,9 @@ const styles = StyleSheet.create({
 	header: {
 		flexDirection: 'row',
 		alignItems: 'center',
+		marginTop: Platform.OS === 'ios' ? rs(40) : rs(10),
+		marginBottom: rs(10),
 		paddingHorizontal: rs(15),
-		paddingTop: rs(10),
 	},
 	backButton: {
 		flexDirection: 'row',
@@ -728,13 +749,14 @@ const styles = StyleSheet.create({
 	usersText: {
 		color: '#848486',
 		fontSize: rf(14),
-		fontFamily: 'Poppins-Medium',
-		marginRight: rs(5),
+		fontFamily: 'Poppins-Regular',
+		marginRight: rs(2),
 	},
 	headerTitle: {
 		color: '#222327',
 		fontSize: rf(16),
 		fontFamily: 'Poppins-Medium',
+		marginLeft: rs(2),
 	},
 	actionsBar: {
 		flexDirection: 'row',

@@ -394,7 +394,7 @@ const UserAddNewData = ({ route }) => {
 						onPress={() => navigation.goBack()}
 						hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
 					>
-						<Feather name="chevron-left" size={rs(22)} color="black" />
+						<Feather name="chevron-left" size={rs(20)} color="black" />
 						<Text style={styles.headerTitle}>Add New Data</Text>
 					</TouchableOpacity>
 				</View>
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
 	header: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		marginTop: Platform.OS === 'ios' ? rs(40) : rs(20),
+		marginTop: Platform.OS === 'ios' ? rs(40) : rs(10),
 		marginBottom: rs(10),
 		paddingHorizontal: rs(15),
 	},
@@ -466,15 +466,15 @@ const styles = StyleSheet.create({
 	},
 	usersText: {
 		color: '#848486',
-		fontSize: rf(16),
+		fontSize: rf(14),
 		fontFamily: 'Poppins-Regular',
-		marginRight: rs(5),
+		marginRight: rs(2),
 	},
 	headerTitle: {
 		color: '#222327',
-		fontSize: rf(18),
+		fontSize: rf(16),
 		fontFamily: 'Poppins-Medium',
-		marginLeft: rs(5),
+		marginLeft: rs(2),
 	},
 	formContainer: {
 		flexGrow: 1,

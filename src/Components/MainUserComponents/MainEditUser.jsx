@@ -27,17 +27,27 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const scaleFactor = SCREEN_WIDTH / 375;
 
 const rs = (size) => size * scaleFactor; // Responsive size
-const rf = (size) => Math.round(size * scaleFactor); 
+const rf = (size) => Math.round(size * scaleFactor);
 
 const FloatingAccordion = ({ field, dropdownItems, formData, handleInputChange }) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const animatedHeight = useRef(new Animated.Value(0)).current;
 	const [selectedItem, setSelectedItem] = useState(formData[field] || 'Select');
 
+	useEffect(() => {
+		if (formData[field] && formData[field].trim() !== '') {
+			setSelectedItem(formData[field]);
+		}
+	}, [formData[field]]);
+
+
+	// console.log('formData',formData[field])
+
+
 	const toggleAccordion = () => {
 		setIsOpen(!isOpen);
 		Animated.timing(animatedHeight, {
-			toValue: isOpen ? 0 : rs(150), // Adjust height based on content
+			toValue: isOpen ? 0 : rs(150),
 			duration: 300,
 			useNativeDriver: false,
 		}).start();
@@ -172,7 +182,7 @@ const UserEditData = ({ route }) => {
 		try {
 			const token = await getToken();
 
-			console.log('formData',formData)
+			console.log('formData', formData)
 
 			const response = await axios.post(
 				`https://secure.ceoitbox.com/api/updateTableData/${id}`,
@@ -188,10 +198,9 @@ const UserEditData = ({ route }) => {
 				}
 			);
 
-			console.log('response',response.data)
+			console.log('response', response.data)
 
-			
-			
+
 			if (response.data) {
 				// Fetch updated data
 				await getAllTableData(id);
@@ -203,7 +212,7 @@ const UserEditData = ({ route }) => {
 				});
 				return;
 			}
-			if (response?.data?.error){
+			if (response?.data?.error) {
 				showToast({
 					type: 'ERROR',
 					message: response?.data?.error,
