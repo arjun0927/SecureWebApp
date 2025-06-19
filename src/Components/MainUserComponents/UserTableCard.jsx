@@ -11,11 +11,21 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useGlobalContext } from '../../Context/GlobalContext';
 
 
-const UserTableCard = ({ data, tableAccess }) => {
+const UserTableCard = ({ data, tableAccess, item }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [deleteTableLoader, setDeleteTableLoader] = useState(false);
-  const { getTables, showToast } = useGlobalContext()
+  const { getTables, showToast, globalFieldSettings, } = useGlobalContext()
+
+  const id = data?._id;
+
+  // console.log('id : ', id)
+
+  const tableInfo = globalFieldSettings.filter((item) => item._id === id);
+  const globalPermission = tableInfo[0]?.userFieldSettings || {};
+  const role = tableInfo[0]?.role;
+
+  // console.log('role : ', role)
 
   const toggleOpen = () => setIsOpen((prev) => !prev);
 
@@ -52,18 +62,34 @@ const UserTableCard = ({ data, tableAccess }) => {
 
   return (
     <View>
-      <TouchableOpacity onPress={() => navigation.navigate('AllUserData', { id: data?._id, tableAccess: tableAccess, tableName: data?.tableName })}>
+      <TouchableOpacity onPress={() => navigation.navigate('AllUserData', { id: data?._id, tableAccess: tableAccess, tableName: data?.tableName, item: item })}>
         <View style={[styles.header]}>
           <View style={styles.headerLeft}>
             <Text style={styles.title}>{data?.tableName}</Text>
           </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => setModalVisible(true)}
-            >
-              <DeleteSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)} />
-            </TouchableOpacity>
+            <>
+              {
+                role === 'ADMIN' && (
+                  <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={() => setModalVisible(true)}
+                  >
+                    <DeleteSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)} />
+                  </TouchableOpacity>
+                )
+              }
+              {
+                role === 'USER' && tableInfo[0]?.deletePermission && (
+                  <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={() => setModalVisible(true)}
+                  >
+                    <DeleteSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)} />
+                  </TouchableOpacity>
+                )
+              }
+            </>
             <TouchableOpacity onPress={toggleOpen} style={styles.toggleButton}>
               {isOpen ? <DownArrowSvg width={responsiveFontSize(1.6)} height={responsiveFontSize(1.6)} /> : <TopArrowSvg width={responsiveFontSize(1.6)} height={responsiveFontSize(1.6)} />}
             </TouchableOpacity>

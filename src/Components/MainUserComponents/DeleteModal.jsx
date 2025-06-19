@@ -14,7 +14,6 @@ const DeleteModal = ({ modalVisible, setModalVisible, handleDelete, handleCancel
   };
 
   return (
-    <View style={styles.container}>
       <Modal
         visible={modalVisible}
         transparent={true}
@@ -53,7 +52,6 @@ const DeleteModal = ({ modalVisible, setModalVisible, handleDelete, handleCancel
           </View>
         </View>
       </Modal>
-    </View>
   );
 };
 

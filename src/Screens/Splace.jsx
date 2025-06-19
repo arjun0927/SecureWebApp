@@ -14,6 +14,7 @@ const Splace = ({ navigation }) => {
   const getToken = async () => {
     const data = await AsyncStorage.getItem('loginInfo');
     const parsedData = JSON.parse(data);
+    // console.log('parsedData :',parsedData)
     const { role, token } = parsedData
     if (token && role === 'USER') {
       navigation.replace('UserMainScreen');

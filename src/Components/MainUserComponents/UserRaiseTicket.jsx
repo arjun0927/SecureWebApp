@@ -1,7 +1,6 @@
 import {
 	StyleSheet,
 	Text,
-	// TextInput,
 	View,
 	TouchableOpacity,
 	ScrollView,
@@ -9,6 +8,7 @@ import {
 	Platform,
 	Image,
 	BackHandler,
+	StatusBar,
 } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
@@ -50,8 +50,6 @@ const UserRaiseTicket = () => {
 			"Upload Problem Screenshot": base64Image,
 		};
 
-		// console.log('Payload:', payload);
-
 		const token = await AsyncStorage.getItem('token');
 		try {
 			const response = await axios.post(
@@ -86,7 +84,9 @@ const UserRaiseTicket = () => {
 			setLoader(false);
 		}
 	};
+	
 	const isFormValid = name && email;
+	
 	const toggleAccordion = () => {
 		setIsAccordionOpen(!isAccordionOpen);
 	};
@@ -95,7 +95,6 @@ const UserRaiseTicket = () => {
 		setPriority(level);
 		setIsAccordionOpen(false);
 	};
-
 
 	const openGallery = () => {
 		const options = {
@@ -109,16 +108,10 @@ const UserRaiseTicket = () => {
 				console.error('ImagePicker Error: ', response.errorMessage);
 			} else {
 				const uri = response.assets[0].uri;
-				// console.log('imageuri', uri);
-
-				// Extract the last part of the file name
-				const fileName = uri.split('/').pop(); // Extract file name from the URI
-				// console.log('File Name:', fileName);
-
-				setImageUri(fileName); // Set only the file name
-				// Convert image to Base64
+				const fileName = uri.split('/').pop();
+				setImageUri(fileName);
 				const base64String = await RNFS.readFile(uri, 'base64');
-				setBase64Image(base64String); // Store the Base64 string in a state
+				setBase64Image(base64String);
 			}
 		});
 	};
@@ -126,120 +119,125 @@ const UserRaiseTicket = () => {
 	Backhandler();
 
 	return (
-		<KeyboardAvoidingView
-			style={{ flex: 1 }}
-			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-		>
-			<View style={styles.container}>
-				<View style={styles.header}>
-					<TouchableOpacity
-						style={{ flexDirection: 'row' , alignItems:'center' }}
-						onPress={() => navigation.goBack()}
-					>
-						<Feather name="chevron-left" size={responsiveFontSize(2.3)} color="black" />
+		<View style={styles.container}>
+			<StatusBar barStyle="dark-content" backgroundColor="#F4FAF4" />
 
-						<Text style={styles.headerTitle}>Raise Tickets</Text>
-					</TouchableOpacity>
-				</View>
+			<View style={styles.header}>
+				<TouchableOpacity
+					style={{ flexDirection: 'row', alignItems: 'center' }}
+					onPress={() => navigation.goBack()}
+				>
+					<Feather name="chevron-left" size={responsiveFontSize(2.3)} color="black" />
+					<Text style={styles.headerTitle}>Raise Tickets</Text>
+				</TouchableOpacity>
+			</View>
 
-				<ScrollView contentContainerStyle={styles.form}>
-					<View style={styles.inputGroup}>
-						<TextInput
-							style={styles.input}
-							value={name}
-							onChangeText={setName}
-							label='Customer Name*'
-							underlineColor='#B9BDCF'
-							activeUnderlineColor='#767A8D'
-							textColor='black'
-						/>
-					</View>
-					<View style={styles.inputGroup}>
+			<KeyboardAvoidingView
+				style={styles.keyboardAvoidingView}
+				behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+				// keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 50}
+			>
+				<ScrollView 
+					showsVerticalScrollIndicator={false} 
+					contentContainerStyle={styles.scrollContent}
+					keyboardShouldPersistTaps="handled"
+				>
+					<View style={styles.form}>
+						<View style={styles.inputGroup}>
+							<TextInput
+								style={styles.input}
+								value={name}
+								onChangeText={setName}
+								label='Customer Name*'
+								underlineColor='#B9BDCF'
+								activeUnderlineColor='#767A8D'
+								textColor='black'
+							/>
+						</View>
+						
+						<View style={styles.inputGroup}>
+							<TextInput
+								style={styles.input}
+								value={email}
+								onChangeText={setEmail}
+								label='Customer Email*'
+								underlineColor='#B9BDCF'
+								activeUnderlineColor='#767A8D'
+								textColor='black'
+							/>
+						</View>
+						
+						<View style={styles.inputGroup}>
+							<TextInput
+								style={styles.input}
+								value={password}
+								onChangeText={setPassword}
+								label='Phone*'
+								underlineColor='#B9BDCF'
+								activeUnderlineColor='#767A8D'
+								textColor='black'
+							/>
+						</View>
+						
+						<View style={styles.inputGroup}>
+							<TextInput
+								style={styles.input}
+								value={issueType}
+								onChangeText={setIssueType}
+								label='Issue Statement*'
+								underlineColor='#B9BDCF'
+								activeUnderlineColor='#767A8D'
+								textColor='black'
+							/>
+						</View>
+						
+						<View style={styles.uploadProblemContainer}>
+							<TouchableOpacity onPress={openGallery} style={styles.uploadButton}>
+								<View>
+									{imageUri ? (
+										<Text style={styles.uploadProblemContainerText2} numberOfLines={1}>
+											{imageUri}
+										</Text>
+									) : (
+										<Text style={styles.uploadProblemContainerText}>
+											Upload Problem Screenshot
+										</Text>
+									)}
+								</View>
+								<View>
+									<Feather name={'upload'} size={responsiveFontSize(2.4)} color={'#578356'} />
+								</View>
+							</TouchableOpacity>
+						</View>
 
-						<TextInput
-							style={styles.input}
-							value={email}
-							onChangeText={setEmail}
-							label='Customer Email*'
-							underlineColor='#B9BDCF'
-							activeUnderlineColor='#767A8D'
-							textColor='black'
-					
-						/>
-					</View>
-					<View style={styles.inputGroup}>
-						<TextInput
-							style={styles.input}
-							value={password}
-							onChangeText={setPassword}
-							label='Phone*'
-							underlineColor='#B9BDCF'
-							activeUnderlineColor='#767A8D'
-							textColor='black'
-							
-
-						/>
-					</View>
-					<View style={styles.inputGroup}>
-						<TextInput
-							style={styles.input}
-							value={issueType}
-							onChangeText={setIssueType}
-							label='Issue Statement*'
-							underlineColor='#B9BDCF'
-							activeUnderlineColor='#767A8D'
-							textColor='black'
-							
-						/>
-					</View>
-					<View style={styles.uploadProblemContainer}>
-						<TouchableOpacity onPress={openGallery} style={styles.uploadButton}>
-							<View>
-								{imageUri ? (
-									<Text style={styles.uploadProblemContainerText2} numberOfLines={1}>
-										{imageUri}
+						<View style={styles.accordionContainer}>
+							<TouchableOpacity onPress={toggleAccordion}>
+								<View style={styles.accordionHeader}>
+									<Text style={styles.accordionHeaderText}>
+										{priority ? `${priority}` : 'Priority Level*'}
 									</Text>
-								) : (
-									<Text style={styles.uploadProblemContainerText}>
-										Upload Problem Screenshot
-									</Text>
-								)}
-							</View>
-							<View>
-								<Feather name={'upload'} size={23} color={'#578356'} />
-							</View>
-						</TouchableOpacity>
-
-					</View>
-					{/* Preview Image */}
-
-					<View style={styles.accordionContainer}>
-						<TouchableOpacity onPress={toggleAccordion}>
-							<View style={styles.accordionHeader}>
-								<Text style={styles.accordionHeaderText}>
-									{priority ? `${priority}` : 'Priority Level*'}
-								</Text>
-								<Feather
-									name={isAccordionOpen ? 'chevron-up' : 'chevron-down'}
-									size={23}
-									color="gray"
-								/>
-							</View>
-						</TouchableOpacity>
-						{isAccordionOpen && (
-							<View style={styles.accordionContent}>
-								{['Low', 'Medium', 'High'].map((level) => (
-									<TouchableOpacity
-										key={level}
-										onPress={() => selectPriority(level)}
-									>
-										<View style={styles.accordionItem}>
-											<Text style={styles.accordionItemText}>{level}</Text>
-										</View>
-									</TouchableOpacity>
-								))}
-							</View>
-						)}
+									<Feather
+										name={isAccordionOpen ? 'chevron-up' : 'chevron-down'}
+										size={23}
+										color="gray"
+									/>
+								</View>
+							</TouchableOpacity>
+							{isAccordionOpen && (
+								<View style={styles.accordionContent}>
+									{['Low', 'Medium', 'High'].map((level) => (
+										<TouchableOpacity
+											key={level}
+											onPress={() => selectPriority(level)}
+										>
+											<View style={styles.accordionItem}>
+												<Text style={styles.accordionItemText}>{level}</Text>
+											</View>
+										</TouchableOpacity>
+									))}
+								</View>
+							)}
+						</View>
 					</View>
 				</ScrollView>
 
@@ -253,12 +251,12 @@ const UserRaiseTicket = () => {
 						]}
 					>
 						<Text style={styles.saveBtnText}>
-							{loader ? <ActivityIndicator size={20} color="white" /> : 'Submit'}
+							{loader ? <ActivityIndicator size={responsiveFontSize(2.4)} color="white" /> : 'Submit'}
 						</Text>
 					</TouchableOpacity>
 				</View>
-			</View>
-		</KeyboardAvoidingView>
+			</KeyboardAvoidingView>
+		</View>
 	);
 };
 
@@ -277,25 +275,29 @@ const styles = StyleSheet.create({
 	headerTitle: {
 		color: '#222327',
 		fontSize: responsiveFontSize(2),
-		fontFamily:'Poppins-Medium',
+		fontFamily: 'Poppins-Medium',
 		marginLeft: 5,
 	},
+	keyboardAvoidingView: {
+		flex: 1,
+	},
+	scrollContent: {
+		flexGrow: 1,
+	},
 	form: {
-		paddingHorizontal: 20,
 		backgroundColor: '#FFF',
 		borderRadius: 15,
 		padding: 15,
 		marginHorizontal: 20,
-		marginVertical: 10,
+		marginTop: 10,
 	},
 	inputGroup: {
 		marginBottom: 10,
 	},
 	input: {
 		height: responsiveHeight(5),
-		// color: 'gray',
 		fontSize: responsiveFontSize(1.8),
-		backgroundColor:'#FFF',
+		backgroundColor: '#FFF',
 		fontFamily: 'Poppins-Regular',
 	},
 	uploadProblemContainer: {
@@ -312,16 +314,6 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		gap: 10
 	},
-	imagePreview: {
-		marginTop: 15,
-		alignItems: 'center',
-	},
-	previewImage: {
-		width: 60,
-		height: 40,
-		borderRadius: 5,
-		marginTop: 10,
-	},
 	uploadProblemContainerText: {
 		color: '#767A8D',
 		fontSize: responsiveFontSize(2),
@@ -333,12 +325,11 @@ const styles = StyleSheet.create({
 		fontSize: responsiveFontSize(2),
 		fontWeight: '400',
 		fontFamily: 'Poppins',
-		maxWidth: '90%', // Ensure the text doesn't take up more than this width
-		overflow: 'hidden', // Hide overflowing text
-		textOverflow: 'ellipsis', // Add ellipsis for overflowing text
-		whiteSpace: 'nowrap', // Prevent wrapping to a new line
+		maxWidth: '90%',
+		overflow: 'hidden',
+		textOverflow: 'ellipsis',
+		whiteSpace: 'nowrap',
 	},
-
 	accordionContainer: {
 		marginBottom: 15,
 	},
@@ -354,39 +345,34 @@ const styles = StyleSheet.create({
 	},
 	accordionHeaderText: {
 		fontSize: responsiveFontSize(2),
-		fontWeight: '500',
-		color: 'gray',
+		fontFamily: 'Poppins-Regular',
+		color: 'black',
 	},
 	accordionContent: {
-		paddingTop: 10,
-		borderWidth: 0.5,
+		borderWidth: 1,
 		borderColor: '#DEE0EA',
-		marginTop: 10,
+		marginTop: 0,
 		borderRadius: 5,
 		paddingHorizontal: 10,
 	},
 	accordionItem: {
 		paddingVertical: 10,
 		borderBottomWidth: 1,
+		paddingHorizontal: 20,
 		borderColor: '#EEEFF6',
 	},
 	accordionItemText: {
-		fontSize: 17,
-	},
-	noBorder: {
-		borderWidth: 0,
+		fontSize: responsiveFontSize(1.6),
+		fontFamily: 'Poppins-Regular'
 	},
 	footer: {
-		position: 'absolute',
-		bottom: 0,
-		left: 0,
-		right: 0,
-		padding: 20,
 		backgroundColor: '#F4FAF4',
+		paddingVertical: 10,
+		paddingHorizontal: 20,
 	},
 	saveBtn: {
 		backgroundColor: '#4D8733',
-		paddingVertical: 15,
+		paddingVertical: 14,
 		width: '40%',
 		alignSelf: 'center',
 		borderRadius: 10,

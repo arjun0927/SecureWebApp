@@ -14,7 +14,13 @@ const TabNavigator = () => {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarHideOnKeyboard: true,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: {
+          ...styles.tabBar,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+        },
         tabBarButton: (props) => (
           <CustomTabBarButton {...props} currentRoute={route.name} />
         ),
@@ -33,7 +39,7 @@ export default TabNavigator;
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: responsiveHeight(7),
+    height: responsiveHeight(8),
     borderTopLeftRadius: 15,
     borderTopRightRadius: 15,
     elevation: 10,

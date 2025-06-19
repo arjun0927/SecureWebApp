@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, TextInput as RNTextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
-import HeaderSvg from '../../assets/Svgs/HeaderSvg';
+import { StyleSheet, Text, View, TouchableOpacity, TextInput as RNTextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import LockSvg from '../../assets/Svgs/LockSvg';
 import EmailSvg from '../../assets/Svgs/EmailSvg';
 import {
@@ -21,6 +20,7 @@ import {
     useClearByFocusCell,
 } from 'react-native-confirmation-code-field';
 import Header from '../../Components/Header';
+import { ActivityIndicator } from 'react-native-paper';
 
 const MainUserLogin = ({ navigation }) => {
     const [email, setEmail] = useState('');
@@ -31,6 +31,7 @@ const MainUserLogin = ({ navigation }) => {
     const [otp, setOtp] = useState('');
     const [visibleOtpUI, setVisibleOtpUI] = useState(false);
     const [activeIndex, setActiveIndex] = useState(0); // Track which OTP cell is active
+    const [focusedInput, setFocusedInput] = useState(null); // Add this new state
 
     const { showToast } = useGlobalContext();
 
@@ -45,11 +46,19 @@ const MainUserLogin = ({ navigation }) => {
         const checkToken = async () => {
             try {
                 const data = await AsyncStorage.getItem('loginInfo');
+                // console.log('data : ',data)
+                if(data === null){
+                    return ;
+                }
                 const parsedData = JSON.parse(data);
-                const token = parsedData?.token;
-                if (token) {
+                // const token = parsedData?.token;
+                const {token , role } = parsedData ;
+                
+                if (token && role === 'USER') {
                     // Navigate to UserMainScreen if token exists
                     navigation.replace('UserMainScreen');
+                }else{
+                    navigation.replace('BottomNavigation');
                 }
             } catch (err) {
                 console.error('Error checking token:', err);
@@ -146,6 +155,7 @@ const MainUserLogin = ({ navigation }) => {
                     token: token,
                     role: role,
                 };
+                // console.log('loginInfo : ',loginInfo)
                 await AsyncStorage.setItem('loginInfo', JSON.stringify(loginInfo));
 
                 showToast({
@@ -153,7 +163,11 @@ const MainUserLogin = ({ navigation }) => {
                     message: 'Login successful'
                 });
 
-                navigation.navigate('UserMainScreen');
+                if(role === 'ADMIN'){
+                    navigation.navigate('BottomNavigation');
+                }else{
+                    navigation.navigate('UserMainScreen');
+                }
                 setEmail('');
                 setPassword('');
                 setOtp('');
@@ -225,12 +239,12 @@ const MainUserLogin = ({ navigation }) => {
             const newOtp = otp.slice(0, activeIndex - 1) + otp.slice(activeIndex);
             setOtp(newOtp);
             setActiveIndex(Math.max(0, activeIndex - 1));
-        } 
+        }
         // If adding a character
         else if (text.length > otp.length) {
             // Get the new character (last char of text)
             const newChar = text.charAt(text.length - 1);
-            
+
             // Only accept numeric input
             if (/^\d$/.test(newChar)) {
                 // Insert at active position or append to end
@@ -246,141 +260,152 @@ const MainUserLogin = ({ navigation }) => {
     };
 
     return (
-        <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === 'android' ? 'padding' : 'padding'}
-        >
-            <View style={styles.container}>
-                <Header/>
-                <View style={styles.signIn}>
-                    <MaterialIcons name={'login'} size={responsiveFontSize(2.7)} color={'black'} />
-                    <Text style={styles.signInText}>Sign In</Text>
-                </View>
-
-                <View style={styles.inputContainer}>
-                    <View style={styles.inputWrapper}>
-                        <EmailSvg width={responsiveFontSize(1.7)} height={responsiveFontSize(1.7)} />
-                        <RNTextInput
-                            style={styles.textInput}
-                            placeholder="Email ID*"
-                            placeholderTextColor={'gray'}
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType='email-address'
-                        />
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'android' ? 'padding' : 'padding'}
+            >
+                <View style={styles.container}>
+                    <Header />
+                    <View style={styles.signIn}>
+                        <MaterialIcons name={'login'} size={responsiveFontSize(2.7)} color={'black'} />
+                        <Text style={styles.signInText}>Sign In</Text>
                     </View>
 
-                    {/* Password Input */}
-                    <View style={styles.inputWrapper}>
-                        <LockSvg width={responsiveFontSize(1.7)} height={responsiveFontSize(1.7)} />
-                        <RNTextInput
-                            style={styles.textInput}
-                            placeholder="Password*"
-                            placeholderTextColor={'gray'}
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry={!showPassword}
-                            keyboardType='default'
-                        />
-                        <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.togglePassword}>
-                            {showPassword ? (
-                                <Feather name="eye" size={responsiveFontSize(1.7)} color="gray" />
-                            ) : (
-                                <Feather name="eye-off" size={responsiveFontSize(1.7)} color="gray" />
-                            )}
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* OTP Input Field - Always render but conditionally display */}
-                    {visibleOtpUI && (
-                        <View style={styles.otpFieldContainer}>
-                            <CodeField
-                                ref={codeFieldRef}
-                                {...props}
-                                value={otp}
-                                onChangeText={handleOtpChange}
-                                cellCount={5}
-                                keyboardType="number-pad"
-                                textContentType="oneTimeCode"
-                                autoComplete={Platform.select({ android: 'sms-otp', default: 'one-time-code' })}
-                                renderCell={({ index, symbol, isFocused }) => (
-                                    <TouchableOpacity 
-                                        key={index}
-                                        onPress={() => handleCellPress(index)}
-                                        activeOpacity={0.7}
-                                    >
-                                        <View
-                                            style={[
-                                                styles.cell,
-                                                {
-                                                    borderColor: (isFocused || index === activeIndex) ? '#61A443' : '#ccc',
-                                                    backgroundColor: symbol ? '#61A443' : 'transparent',
-                                                },
-                                            ]}
-                                        >
-                                            <Text style={[
-                                                styles.cellText,
-                                                { color: symbol ? '#FFF' : '#000' }
-                                            ]}>
-                                                {symbol || (isFocused && index === activeIndex ? <Cursor style={{ backgroundColor: '#61A443' }} /> : null)}
-                                            </Text>
-                                        </View>
-                                    </TouchableOpacity>
-                                )}
-                            />
-                            
-                            {/* Hidden TextInput for Manual Position Control */}
+                    <View style={styles.inputContainer}>
+                        <View style={[
+                            styles.inputWrapper,
+                            focusedInput === 'email' && styles.inputWrapperFocused
+                        ]}>
+                            <EmailSvg width={responsiveFontSize(2.3)} height={responsiveFontSize(2.2)} />
                             <RNTextInput
-                                style={{ height: 0, width: 0, opacity: 0 }}
-                                value={otp}
-                                onChangeText={handleOtpChange}
-                                keyboardType="number-pad"
-                                maxLength={5}
-                                selection={{ start: activeIndex, end: activeIndex }}
-                                onSelectionChange={(event) => {
-                                    setActiveIndex(event.nativeEvent.selection.start);
-                                }}
+                                style={styles.textInput}
+                                placeholder="Email ID*"
+                                placeholderTextColor={'gray'}
+                                value={email}
+                                onChangeText={setEmail}
+                                keyboardType='email-address'
+                                onFocus={() => setFocusedInput('email')}
+                                onBlur={() => setFocusedInput(null)}
                             />
                         </View>
-                    )}
 
-                    {visibleOtpUI && (
-                        <TouchableOpacity onPress={sendOtp}>
-                            <View style={styles.sendOtp}>
-                                {otpLoader ? (
-                                    <ActivityIndicator size="small" color="#61A443" />
+                        <View style={[
+                            styles.inputWrapper,
+                            focusedInput === 'password' && styles.inputWrapperFocused
+                        ]}>
+                            <LockSvg width={responsiveFontSize(2.3)} height={responsiveFontSize(2.2)} />
+                            <RNTextInput
+                                style={styles.textInput}
+                                placeholder="Password*"
+                                placeholderTextColor={'gray'}
+                                value={password}
+                                onChangeText={setPassword}
+                                secureTextEntry={!showPassword}
+                                keyboardType='default'
+                                onFocus={() => setFocusedInput('password')}
+                                onBlur={() => setFocusedInput(null)}
+                            />
+                            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.togglePassword}>
+                                {showPassword ? (
+                                    <Feather name="eye" size={responsiveFontSize(2.3)} color="gray" />
                                 ) : (
-                                    <Text style={styles.sendOtpText}>Resend OTP</Text>
+                                    <Feather name="eye-off" size={responsiveFontSize(2.3)} color="gray" />
                                 )}
-                            </View>
-                        </TouchableOpacity>
-                    )}
-                </View>
+                            </TouchableOpacity>
+                        </View>
 
-                <TouchableOpacity
-                    onPress={handleSignIn}
-                    disabled={!isFormValid || (visibleOtpUI && otp.length < 5)}
-                >
-                    <View
-                        style={[
-                            styles.nextBtn,
-                            { opacity: (isFormValid && (!visibleOtpUI || otp.length === 5)) ? 1 : 0.5 },
-                        ]}
-                    >
-                        {isLoading ? (
-                            <ActivityIndicator size={responsiveFontSize(2)} color={'#FFF'} />
-                        ) : (
-                            <>
-                                <MaterialIcons name={'login'} size={responsiveFontSize(2)} color={'white'} />
-                                <Text style={styles.nextBtnText}>
-                                    Sign In
-                                </Text>
-                            </>
+                        {/* OTP Input Field - Always render but conditionally display */}
+                        {visibleOtpUI && (
+                            <View style={styles.otpFieldContainer}>
+                                <CodeField
+                                    ref={codeFieldRef}
+                                    {...props}
+                                    value={otp}
+                                    onChangeText={handleOtpChange}
+                                    cellCount={5}
+                                    keyboardType="number-pad"
+                                    textContentType="oneTimeCode"
+                                    autoComplete={Platform.select({ android: 'sms-otp', default: 'one-time-code' })}
+                                    renderCell={({ index, symbol, isFocused }) => (
+                                        <TouchableOpacity
+                                            key={index}
+                                            onPress={() => handleCellPress(index)}
+                                            activeOpacity={0.7}
+                                        >
+                                            <View
+                                                style={[
+                                                    styles.cell,
+                                                    {
+                                                        borderColor: (isFocused || index === activeIndex) ? '#61A443' : '#ccc',
+                                                        backgroundColor: symbol ? '#61A443' : 'transparent',
+                                                    },
+                                                ]}
+                                            >
+                                                <Text style={[
+                                                    styles.cellText,
+                                                    { color: symbol ? '#FFF' : '#000' }
+                                                ]}>
+                                                    {symbol || (isFocused && index === activeIndex ? <Cursor style={{ backgroundColor: '#61A443' }} /> : null)}
+                                                </Text>
+                                            </View>
+                                        </TouchableOpacity>
+                                    )}
+                                />
+
+                                {/* Hidden TextInput for Manual Position Control */}
+                                <RNTextInput
+                                    style={{ height: 0, width: 0, opacity: 0 }}
+                                    value={otp}
+                                    onChangeText={handleOtpChange}
+                                    keyboardType="number-pad"
+                                    maxLength={5}
+                                    selection={{ start: activeIndex, end: activeIndex }}
+                                    onSelectionChange={(event) => {
+                                        setActiveIndex(event.nativeEvent.selection.start);
+                                    }}
+                                />
+                            </View>
+                        )}
+
+                        {visibleOtpUI && (
+                            <TouchableOpacity onPress={sendOtp} style={styles.sendOtp}>
+                                <View >
+                                    {otpLoader ? (
+                                        <ActivityIndicator size="small" color="#61A443" />
+                                    ) : (
+                                        <Text style={styles.sendOtpText}>Resend OTP</Text>
+                                    )}
+                                </View>
+                            </TouchableOpacity>
                         )}
                     </View>
-                </TouchableOpacity>
-            </View>
-        </KeyboardAvoidingView>
+
+                    <TouchableOpacity
+                        onPress={handleSignIn}
+                        disabled={!isFormValid || (visibleOtpUI && otp.length < 5)}
+                    >
+                        <View
+                            style={[
+                                styles.nextBtn,
+                                { opacity: (isFormValid && (!visibleOtpUI || otp.length === 5)) ? 1 : 0.5 },
+                            ]}
+                        >
+                            {isLoading ? (
+                                <ActivityIndicator size={'small'} color={'#FFF'} />
+                            ) : (
+                                <>
+                                    <MaterialIcons name={'login'} size={responsiveFontSize(2)} color={'white'} />
+                                    <Text style={styles.nextBtnText}>
+                                        Sign In
+                                    </Text>
+                                </>
+                            )}
+                        </View>
+                    </TouchableOpacity>
+                </View>
+            </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
     );
 };
 
@@ -418,18 +443,35 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: responsiveHeight(1.6),
-        borderWidth: 0.6,
+        borderWidth: 1,
         borderColor: '#61A443',
         borderRadius: 10,
         paddingLeft: 10,
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    inputWrapperFocused: {
+        borderWidth: 1.5,
+        borderColor: '#4D8733',
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+        elevation: 3,
     },
     textInput: {
         flex: 1,
         color: '#222327',
-        minHeight: responsiveHeight(5),
+        minHeight: responsiveHeight(5.5),
         paddingLeft: 10,
-        fontSize: responsiveFontSize(1.5),
-        fontFamily: 'Poppins-Regular'
+        fontSize: responsiveFontSize(1.8),
+        fontFamily: 'Poppins-Regular',
+        paddingVertical: 8,
     },
     icon: {
         // width: 200,

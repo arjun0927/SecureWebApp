@@ -20,6 +20,7 @@ export const GlobalProvider = ({ children }) => {
   const [typeInfo, setTypeInfo] = useState(null);
   const [data, setData] = useState([]);
   const [users, setUsers] = useState([]);
+  const [globalFieldSettings, setGlobalFieldSettings] = useState([]);
 
   // Function to fetch table data by token
 
@@ -48,6 +49,7 @@ export const GlobalProvider = ({ children }) => {
       if (response?.data) {
         setTypeInfo(response?.data?.tableSettingsData?.fieldSettings);
         setUserData(response?.data?.sheetData || []);
+        return response?.data
       } else {
         console.error('No table access data found');
       }
@@ -69,6 +71,8 @@ export const GlobalProvider = ({ children }) => {
 
       if (response?.data?.tablesAccess) {
         // console.log('context api response ',response.data.tablesAccess)
+        
+        setGlobalFieldSettings(response?.data?.tablesAccess)
         return response.data.tablesAccess;
       } else {
         console.error('No table access data found');
@@ -185,6 +189,27 @@ export const GlobalProvider = ({ children }) => {
     }
   }
 
+  const TableData = async(id)=> {
+    try {
+      const token = await getToken();
+      const response = await axios.get(
+        `https://secure.ceoitbox.com/api//getTableData/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      console.log('Table Data response',response.data);
+      // if (response.data) {
+          
+      //   }
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  }
+
   // Debugging State Updates
   // useEffect(() => {
   //   if (userData.length > 0) {
@@ -212,6 +237,9 @@ export const GlobalProvider = ({ children }) => {
     getUsers,
     setUsers,
     users,
+    TableData,
+    globalFieldSettings,
+    setGlobalFieldSettings,
   };
 
   return (

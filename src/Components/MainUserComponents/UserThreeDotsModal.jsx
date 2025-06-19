@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
 	  borderRadius: 14,
 	  padding: 15,
 	  elevation: 1,
-	  width: '55%',
+	  width: '50%',
 	  position: 'absolute',
 	  top:responsiveHeight(10),
 	  right:10,

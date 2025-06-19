@@ -9,25 +9,33 @@ import DeleteModal from './MainUserComponents/DeleteModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useGlobalContext } from '../Context/GlobalContext';
+import getToken from './getToken';
 
 
-const TableCardContent = ({ data, tableAccess }) => {
+const TableCardContent = ({ item, tableAccess }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [tableLoader, setTableLoader] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const [deleteTableLoader, setDeleteTableLoader] = useState(false);
 
-  const { showToast, getTables } = useGlobalContext();
+  const { showToast, data, setData, globalFieldSettings, } = useGlobalContext();
+  const id = item?._id;
+  // console.log('id : ', id)
+  const tableInfo = globalFieldSettings.filter((item) => item._id === id);
+  const role = tableInfo[0]?.role;
 
   const toggleOpen = () => setIsOpen((prev) => !prev);
 
   const navigation = useNavigation();
 
+  // console.log('data : ', data)
+
   const deleteSingleTable = async () => {
     try {
-      setDeleteTableLoader(true);
-      const token = await AsyncStorage.getItem('token');
+      setTableLoader(true);
+      const token = await getToken();
+      const id = item?._id;
       const response = await axios.delete(
-        `https://secure.ceoitbox.com/api/deleteTable/${data._id}`,
+        `https://secure.ceoitbox.com/api/deleteTable/${id}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -36,7 +44,10 @@ const TableCardContent = ({ data, tableAccess }) => {
       );
 
       if (response.data) {
-        await getTables();
+        // console.log('response.data : ', response.data)
+        const updatedData = data.filter(item => item._id !== id);
+        setData(updatedData);
+        setTableLoader(false);
         showToast({
           type: 'SUCCESS',
           message: 'Table Deleted Successfully'
@@ -44,9 +55,10 @@ const TableCardContent = ({ data, tableAccess }) => {
         setModalVisible(false);
       }
     } catch (error) {
+      setTableLoader(false);
       console.error('Error deleting table:', error);
     } finally {
-      setDeleteTableLoader(false);
+      setTableLoader(false);
     }
   };
 
@@ -56,17 +68,33 @@ const TableCardContent = ({ data, tableAccess }) => {
       <TouchableOpacity onPress={toggleOpen}>
         <View style={[styles.header]}>
           <View style={styles.headerLeft}>
-            <TouchableOpacity onPress={() => navigation.navigate('AllTableData', { id: data?._id, tableAccess: tableAccess, tableName: data?.tableName })}>
-              <Text numberOfLines={1} ellipsizeMode='tail' style={styles.title}>{data?.tableName}</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('AllUserData', { id: item?._id, tableAccess: tableAccess, tableName: item?.tableName, item: item })}>
+              <Text numberOfLines={1} ellipsizeMode='tail' style={styles.title}>{item?.tableName}</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => setModalVisible(true)}
-            >
-              <DeleteSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)} />
-            </TouchableOpacity>
+            <>
+              {
+                role === 'ADMIN' && (
+                  <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={() => setModalVisible(true)}
+                  >
+                    <DeleteSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)} />
+                  </TouchableOpacity>
+                )
+              }
+              {
+                role === 'USER' && tableInfo[0]?.deletePermission && (
+                  <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={() => setModalVisible(true)}
+                  >
+                    <DeleteSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)} />
+                  </TouchableOpacity>
+                )
+              }
+            </>
             <TouchableOpacity onPress={toggleOpen} style={styles.toggleButton}>
               {isOpen ? <DownArrowSvg width={responsiveFontSize(1.6)} height={responsiveFontSize(1.6)} /> : <TopArrowSvg width={responsiveFontSize(1.6)} height={responsiveFontSize(1.6)} />}
             </TouchableOpacity>
@@ -80,11 +108,11 @@ const TableCardContent = ({ data, tableAccess }) => {
           <View style={styles.headerOpen}></View>
           <View style={styles.dataRow}>
             <Text numberOfLines={1} ellipsizeMode='tail' style={styles.rowLabel}>Tab Name</Text>
-            <Text style={styles.rowValue}>{data?.spreadsheetsName}</Text>
+            <Text style={styles.rowValue}>{item?.spreadsheetsName}</Text>
           </View>
           <View style={[styles.dataRow, styles.noBorder]}>
             <Text style={styles.rowLabel}>Unique Field</Text>
-            <Text numberOfLines={1} ellipsizeMode='tail' style={styles.rowValue}>{data?.uniqueField}</Text>
+            <Text numberOfLines={1} ellipsizeMode='tail' style={styles.rowValue}>{item?.uniqueField}</Text>
           </View>
         </View>
       )}
@@ -94,8 +122,7 @@ const TableCardContent = ({ data, tableAccess }) => {
           setModalVisible={setModalVisible}
           handleDelete={() => deleteSingleTable()}
           handleCancel={() => setModalVisible(false)}
-          setDeleteTableLoader={setDeleteTableLoader}
-          deleteTableLoader={deleteTableLoader}
+          deleteLoader={tableLoader}
         />
       )}
     </View>
@@ -134,7 +161,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: 'Montserrat-Medium',
-    fontSize: responsiveFontSize(1.9),
+    fontSize: responsiveFontSize(1.7),
     color: 'black',
     lineHeight: 32,
   },
@@ -165,7 +192,7 @@ const styles = StyleSheet.create({
   rowLabel: {
     width: '50%',
     color: '#222327',
-    fontSize: responsiveFontSize(1.7),
+    fontSize: responsiveFontSize(1.6),
     fontFamily: 'Poppins-Regular',
   },
   rowValue: {

@@ -17,6 +17,7 @@ import {
   responsiveWidth,
   responsiveHeight,
 } from 'react-native-responsive-dimensions';
+import AntDesign from 'react-native-vector-icons/AntDesign'
 
 const AnimatedTableSearchBar = () => {
   const [input, setInput] = useState('');
@@ -32,12 +33,11 @@ const AnimatedTableSearchBar = () => {
   const isLargeScreen = windowWidth >= 768;
 
   const getSearchWidth = useCallback(() => {
-    if (isSmallScreen) return windowWidth * 0.65; 
-    if (isMediumScreen) return windowWidth * 0.35; 
-    return windowWidth * 0.42; 
+    if (isSmallScreen) return windowWidth * 0.65;
+    if (isMediumScreen) return windowWidth * 0.35;
+    return windowWidth * 0.42;
   }, [windowWidth, isSmallScreen, isMediumScreen, isLargeScreen]);
 
-  // Cache search icon size
   const getSearchIconSize = useCallback(() => {
     if (isSmallScreen) return responsiveFontSize(2);
     if (isMediumScreen) return responsiveFontSize(2.3);
@@ -62,30 +62,60 @@ const AnimatedTableSearchBar = () => {
     }
   }, [data, originalData]);
 
+  // Add debounced search function
+  const debouncedSearch = useCallback(
+    (text, originalData) => {
+      // console.log('Debounced search executed with:', text);
+      const startTime = performance.now();
+
+      if (!text || text.trim() === '') {
+        setData(originalData);
+        // console.log('Search cleared, reset to original data');
+        return;
+      }
+
+      const filteredData = originalData.filter((item) => {
+        const tableName = item?.tableName?.toLowerCase() || '';
+        const spreadsheetsName = item?.spreadsheetsName?.toLowerCase() || '';
+        const uniqueField = item?.uniqueField?.toLowerCase() || '';
+        const searchTerm = text.toLowerCase();
+
+        return (
+          tableName.includes(searchTerm) ||
+          spreadsheetsName.includes(searchTerm) ||
+          uniqueField.includes(searchTerm)
+        );
+      });
+
+      setData(filteredData);
+      const endTime = performance.now();
+      // console.log(`Search completed in ${(endTime - startTime).toFixed(2)}ms`);
+      // console.log(`Found ${filteredData.length} results`);
+    },
+    []
+  );
+
+  // Create debounced function ref
+  const debouncedSearchRef = useRef(null);
+
+  useEffect(() => {
+    // Initialize debounced function
+    debouncedSearchRef.current = debounce((text) => {
+      debouncedSearch(text, originalData);
+    }, 300); // 300ms delay
+
+    return () => {
+      // Cleanup
+      if (debouncedSearchRef.current?.cancel) {
+        debouncedSearchRef.current.cancel();
+      }
+    };
+  }, [debouncedSearch, originalData]);
+
   const handleSearch = (text) => {
     setInput(text);
-
-    if (!text || text.trim() === '') {
-      setData(originalData);
-      return;
-    }
-
-    const filteredData = originalData.filter((item) => {
-      // Safely check for properties that might be undefined
-      const tableName = item?.tableName?.toLowerCase() || '';
-      const spreadsheetsName = item?.spreadsheetsName?.toLowerCase() || '';
-      const uniqueField = item?.uniqueField?.toLowerCase() || '';
-
-      const searchTerm = text.toLowerCase();
-
-      return (
-        tableName.includes(searchTerm) ||
-        spreadsheetsName.includes(searchTerm) ||
-        uniqueField.includes(searchTerm)
-      );
-    });
-
-    setData(filteredData);
+    // console.log('Search input changed:', text);
+    debouncedSearchRef.current(text);
   };
 
   const toggleSearchBar = () => {
@@ -116,7 +146,7 @@ const AnimatedTableSearchBar = () => {
 
   const animatedBackgroundColor = animation.interpolate({
     inputRange: [0, 1],
-    outputRange: ['#E0FFD3', 'white'],
+    outputRange: ['#E0FFD3', '#FFF'],
   });
 
   const animatedElevation = animation.interpolate({
@@ -137,15 +167,14 @@ const AnimatedTableSearchBar = () => {
         styles.mainContainer,
         {
           backgroundColor: animatedBackgroundColor,
-          elevation: animatedElevation,
-          shadowOpacity: isExpanded ? 0.1 : 0,
+          // elevation: animatedElevation,
           height: isSmallScreen ? responsiveHeight(5.2) :
             isMediumScreen ? responsiveHeight(5.5) :
               responsiveHeight(5),
-          borderRadius: isSmallScreen ? responsiveWidth(1.5) : responsiveWidth(2), paddingVertical: isSmallScreen ? responsiveHeight(0.5) :
+          borderRadius: isSmallScreen ? responsiveWidth(1.5) : responsiveWidth(2), 
+          paddingVertical: isSmallScreen ? responsiveHeight(0.5) :
             isMediumScreen ? responsiveHeight(0.6) :
               responsiveHeight(0.5),
-
         },
       ]}
     >
@@ -180,9 +209,9 @@ const AnimatedTableSearchBar = () => {
               fontSize: isSmallScreen ? responsiveFontSize(1.6) :
                 isMediumScreen ? responsiveFontSize(1.8) :
                   responsiveFontSize(2),
-              
+
               paddingVertical: isSmallScreen ? responsiveHeight(0.8) :
-                isMediumScreen ? responsiveHeight(1) :
+                isMediumScreen ? responsiveHeight(0) :
                   responsiveHeight(0),
             }
           ]}
@@ -207,8 +236,7 @@ const AnimatedTableSearchBar = () => {
           {input.length > 0 && (
             <View style={styles.clearIconContainer}>
               <View style={styles.clearIcon}>
-                <View style={styles.clearIconLine1} />
-                <View style={styles.clearIconLine2} />
+                <AntDesign name='close' size={responsiveFontSize(2.2)} color={'#888'} />
               </View>
             </View>
           )}
@@ -218,6 +246,17 @@ const AnimatedTableSearchBar = () => {
   );
 };
 
+// Add debounce utility function at the bottom of the file, before the styles
+function debounce(func, wait) {
+  let timeout;
+  const debouncedFn = (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+  debouncedFn.cancel = () => clearTimeout(timeout);
+  return debouncedFn;
+}
+
 export default AnimatedTableSearchBar;
 
 const styles = StyleSheet.create({
@@ -226,22 +265,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
     maxWidth: '100%',
-    alignSelf: 'flex-start',
-    ...Platform.select({
-      ios: {
-        shadowOffset: { width: 0, height: 1 },
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+   
   },
   textInput: {
     flex: 1,
@@ -275,6 +300,7 @@ const styles = StyleSheet.create({
   clearIcon: {
     width: '100%',
     height: '100%',
+    marginRight: 10,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',

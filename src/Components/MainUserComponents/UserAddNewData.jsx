@@ -10,144 +10,255 @@ import {
 	StatusBar,
 	Animated,
 	Keyboard,
+	SafeAreaView,
+	Alert,
+	FlatList,
 } from 'react-native';
 import React, { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useGlobalContext } from '../../Context/GlobalContext';
-import { ActivityIndicator } from 'react-native-paper';
-import { TextInput } from 'react-native-paper';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import { launchImageLibrary } from 'react-native-image-picker';
+import { ActivityIndicator, TextInput } from 'react-native-paper';
+import DatePicker from 'react-native-date-picker';
+import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import getToken from '../getToken';
-
-// Get screen dimensions for responsive design
+import { Switch } from 'react-native-paper';
+import { Camera } from 'react-native-vision-camera';
+import AntDesign from 'react-native-vector-icons/AntDesign';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const scaleFactor = SCREEN_WIDTH / 375; // Base scale on standard iPhone width
+const scaleFactor = SCREEN_WIDTH / 375;
 
-// Responsive sizing functions
 const rs = (size) => size * scaleFactor; // Responsive size
 const rf = (size) => Math.round(size * scaleFactor); // Responsive font size
 
-// Floating Accordion Component
-const FloatingAccordion = ({ field, dropdownItems, formData, handleInputChange }) => {
-	const [isOpen, setIsOpen] = useState(false);
-	const animatedHeight = useRef(new Animated.Value(0)).current;
-	const [selectedItem, setSelectedItem] = useState(formData[field] || 'Select');
-
-	const toggleAccordion = () => {
-		setIsOpen(!isOpen);
-		Animated.timing(animatedHeight, {
-			toValue: isOpen ? 0 : rs(150), // Adjust height based on content
-			duration: 300,
-			useNativeDriver: false,
-		}).start();
-	};
-
-	const selectItem = (item) => {
-		setSelectedItem(item);
-		handleInputChange(field, item);
-		toggleAccordion();
-	};
-
-	return (
-		<View style={styles.accordionContainer}>
-			<TouchableOpacity
-				style={styles.accordionHeader}
-				onPress={toggleAccordion}
-				activeOpacity={0.7}
-			>
-				<View style={styles.accordionTitleContainer}>
-					<Text style={[styles.accordionLabel, selectedItem ? styles.accordionLabelSelected : null]}>
-						{field}
-					</Text>
-					<Text style={styles.accordionSelectedValue} numberOfLines={1}>
-						{selectedItem}
-					</Text>
-				</View>
-				<Feather
-					name={isOpen ? "chevron-up" : "chevron-down"}
-					size={rs(20)}
-					color="#4D8733"
-				/>
-			</TouchableOpacity>
-			<Animated.View style={[styles.accordionBody, { height: animatedHeight }]}>
-				<ScrollView
-					nestedScrollEnabled={true}
-					showsVerticalScrollIndicator={true}
-					contentContainerStyle={styles.accordionScrollContent}
-				>
-					{dropdownItems.map((item, index) => (
-						<TouchableOpacity
-							key={`dropdown-${field}-${index}`}
-							style={[
-								styles.accordionItem,
-								selectedItem === item && styles.accordionItemSelected
-							]}
-							onPress={() => selectItem(item)}
-						>
-							<Text style={[
-								styles.accordionItemText,
-								selectedItem === item && styles.accordionItemTextSelected
-							]}>
-								{item}
-							</Text>
-						</TouchableOpacity>
-					))}
-				</ScrollView>
-			</Animated.View>
-		</View>
-	);
-};
-
 const UserAddNewData = ({ route }) => {
-	const { showToast, getAllTableData } = useGlobalContext();
+	const [allInputData, setAllInputData] = useState([]);
 	const [formData, setFormData] = useState({});
+	const [imageUris, setImageUris] = useState({});
+	const [errors, setErrors] = useState({});
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [imageUris, setImageUris] = useState({}); // Track image URIs for each field
-	const navigation = useNavigation();
-	const { fieldData, id, typeInfo } = route.params;
-	const [datePickerField, setDatePickerField] = useState(null);
-	const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
-	const [keyboardVisible, setKeyboardVisible] = useState(false);
+	const [accordionStates, setAccordionStates] = useState({});
+	const [dateRangePickerVisible, setDateRangePickerVisibility] = useState(false);
+	const [dateRangeField, setDateRangeField] = useState(null);
+	const [isSelectingStartDate, setIsSelectingStartDate] = useState(true);
+	const [datePickerOpen, setDatePickerOpen] = useState(false);
+	const [timePickerOpen, setTimePickerOpen] = useState(false);
+	const [currentField, setCurrentField] = useState(null);
+	const [datePickerMode, setDatePickerMode] = useState('date');
+	const [tempDate, setTempDate] = useState(new Date());
 
 	const inputRefs = useRef({});
-	const scrollViewRef = useRef();
+	const accordionHeights = useRef({});
 
-	// Track keyboard visibility
+	const { tableAccess, id } = route.params;
+	const { globalFieldSettings, getAllTableData, showToast, setUserData } = useGlobalContext();
+
+
+	const tableInfo = globalFieldSettings.filter((item) => item._id === id);
+	const globalPermission = tableInfo[0]?.userFieldSettings || {};
+
+	// console.log('globalPermission : ',globalPermission)
+
+	const navigation = useNavigation();
+
+	// console.log('tableInfo : ', tableInfo)
+
+
+
+
 	useEffect(() => {
-		const keyboardDidShowListener = Keyboard.addListener(
-			'keyboardDidShow',
-			() => setKeyboardVisible(true)
-		);
-		const keyboardDidHideListener = Keyboard.addListener(
-			'keyboardDidHide',
-			() => setKeyboardVisible(false)
-		);
+		const resultArray = Object.entries(tableAccess).map(([key, value]) => ({
+			key,
+			value
+		}));
+		setAllInputData(resultArray);
 
-		return () => {
-			keyboardDidShowListener.remove();
-			keyboardDidHideListener.remove();
-		};
+		// Initialize accordion animated values
+		const initialAccordionStates = {};
+		resultArray.forEach(item => {
+			if (item.value?.dataType === 'Dropdown Range') {
+				const key = item.key;
+				initialAccordionStates[key] = {
+					isOpen: false,
+					height: new Animated.Value(0)
+				};
+				accordionHeights.current[key] = new Animated.Value(0);
+			}
+		});
+		setAccordionStates(initialAccordionStates);
+	}, [tableAccess]);
+
+	const isEmptyForm = useMemo(() => {
+		// Check if formData is completely empty
+		if (Object.keys(formData).length === 0) {
+			return true;
+		}
+
+		// Check if all values in formData are empty strings, null, or undefined
+		const hasAnyValue = Object.values(formData).some(value => {
+			// For checkbox fields, check if value is TRUE
+			if (typeof value === 'string' && value === 'TRUE') {
+				return true;
+			}
+			// For other fields, check if value is not empty
+			return value && value.toString().trim() !== '';
+		});
+
+		// Also check imageUris for file fields
+		const hasAnyImage = Object.values(imageUris).some(uri => uri && uri.trim() !== '');
+
+		return !hasAnyValue && !hasAnyImage;
+	}, [formData, imageUris]);
+
+	// Validate form before submission
+	const validateForm = useCallback(() => {
+		const newErrors = {};
+		let isFormValid = true;
+
+		allInputData.forEach((item) => {
+			const key = item.key;
+			const fieldRequired = item.value?.required;
+			const newKey = String(key);
+			const matchCondition = globalPermission[newKey];
+
+			// Skip validation for hidden fields or fields with no create access
+			if (item.value.hidden || !matchCondition?.createAccess) {
+				return;
+			}
+
+			// Validate required fields
+			if (fieldRequired && (!formData[key] || formData[key].trim() === '')) {
+				newErrors[key] = `${key} is required`;
+				isFormValid = false;
+			}
+		});
+
+		setErrors(newErrors);
+		return isFormValid;
+	}, [allInputData, formData, globalPermission]);
+
+	const showPicker = useCallback((field, mode) => {
+		setCurrentField(field);
+		setDatePickerMode(mode);
+
+		if (mode === 'date') {
+			setDatePickerOpen(true);
+		} else if (mode === 'time') {
+			setTimePickerOpen(true);
+		} else if (mode === 'date-time') {
+			setDatePickerMode('date');
+			setDatePickerOpen(true);
+		}
 	}, []);
 
-	// Memoize the empty validation function to prevent unnecessary re-renders
-	const isEmptyForm = useMemo(() => {
-		return Object.keys(formData).length === 0;
-	}, [formData]);
+	const handlePickerConfirm = useCallback((selectedDate) => {
+		if (!currentField) return;
+
+		if (datePickerMode === 'date') {
+			if (currentField.toLowerCase().includes('datetime') ||
+				(tableAccess[currentField]?.dataType === 'Date & Time')) {
+				// Store the selected date and switch to time picker
+				setTempDate(selectedDate);
+				setDatePickerOpen(false);
+
+				// Switch to time mode and open time picker after a brief delay
+				setTimeout(() => {
+					setDatePickerMode('time');
+					setTimePickerOpen(true);
+				}, 300);
+			} else {
+				// Date-only field
+				const formattedDate = selectedDate.toLocaleDateString("en-GB").split("/").join("-");
+				handleInputChange(currentField, formattedDate);
+				setDatePickerOpen(false);
+				setCurrentField(null);
+				setDatePickerMode('date'); // Reset mode
+			}
+		} else if (datePickerMode === 'time') {
+			const formattedTime = selectedDate.toLocaleTimeString([], {
+				hour: '2-digit',
+				minute: '2-digit',
+				hour12: true
+			});
+
+			if (currentField.toLowerCase().includes('datetime') ||
+				(tableAccess[currentField]?.dataType === 'Date & Time')) {
+				// Combine date and time for datetime fields
+				if (tempDate) {
+					const formattedDate = tempDate.toLocaleDateString("en-GB").split("/").join("-");
+					const combined = `${formattedDate} ${formattedTime}`;
+					handleInputChange(currentField, combined);
+				}
+			} else {
+				// Time-only field
+				handleInputChange(currentField, formattedTime);
+			}
+
+			// Clean up
+			setTimePickerOpen(false);
+			setCurrentField(null);
+			setDatePickerMode('date'); // Reset mode
+			setTempDate(new Date()); // Reset temp date
+		}
+	}, [currentField, datePickerMode, tempDate, handleInputChange, tableAccess]);
+
+	const showDateRangePicker = useCallback((field, isStart = true) => {
+		setDateRangeField(field);
+		setIsSelectingStartDate(isStart);
+		setDateRangePickerVisibility(true);
+	}, []);
+
+	// Add this new function before handleSave
+	const getAllFieldsData = useCallback(() => {
+		const fieldsData = {};
+
+		allInputData.forEach((item) => {
+			const key = item.key;
+			const datatype = item.value?.dataType;
+			const newKey = String(key);
+			const matchCondition = globalPermission[newKey];
+			const role = tableInfo[0]?.role;
+
+			// Skip if field should be hidden or user doesn't have create access
+			if (item.value.hidden || (role === 'USER' && !matchCondition?.createAccess)) {
+				return;
+			}
+
+			if (key === '__ID') return;
+
+			// For file fields, store the URI as the value
+			if (datatype === 'File') {
+				fieldsData[key] = imageUris[key] || '';
+			} else {
+				// For all other fields, store the form value directly
+				fieldsData[key] = formData[key] || '';
+			}
+		});
+
+		return fieldsData;
+	}, [allInputData, formData, imageUris, globalPermission, tableInfo]);
 
 	const handleSave = useCallback(async () => {
 		if (isSubmitting) return;
+
+		// Get all fields data before validation
+		const allFieldsData = getAllFieldsData();
+
+		// Validate form before submission
+		if (!validateForm()) {
+			showToast({
+				type: 'ERROR',
+				message: 'Please fill all required fields',
+			});
+			return;
+		}
 
 		setIsSubmitting(true);
 
 		try {
 			const token = await getToken();
-
-			console.log('Form Data:', formData);
 
 			const response = await axios.post(
 				`https://secure.ceoitbox.com/api/create/TableData/${id}`,
@@ -161,13 +272,18 @@ const UserAddNewData = ({ route }) => {
 
 			if (response) {
 				// Fetch updated data
-				console.log('Data saved successfully:', response.data);
-				await getAllTableData(id);
-
-				// Reset form state
-				setFormData({});
-				setImageUris({});
+				// console.log('Data saved successfully:', response.data);
+				const id = response?.data?.__ID;
+				allFieldsData['__ID'] = id;
+				// console.log('allFieldsData : ',allFieldsData)
+				// await getAllTableData(id);
+				setUserData(prev => [allFieldsData, ...prev])
 				navigation.goBack();
+
+				showToast({
+					type: 'SUCCESS',
+					message: 'Data Created Successfully',
+				});
 
 				// Clear input fields
 				Object.keys(inputRefs.current).forEach((key) => {
@@ -176,10 +292,8 @@ const UserAddNewData = ({ route }) => {
 					}
 				});
 
-				showToast({
-					type: 'SUCCESS',
-					message: 'Data Created Successfully',
-				});
+				setFormData({});
+				setImageUris({});
 			}
 		} catch (error) {
 			console.error('Error saving data:', error);
@@ -191,74 +305,142 @@ const UserAddNewData = ({ route }) => {
 		} finally {
 			setIsSubmitting(false);
 		}
-	}, [formData, isSubmitting, id, getAllTableData, showToast]);
+	}, [formData, isSubmitting, id, getAllTableData, showToast, validateForm, getAllFieldsData]);
 
 	// Optimize input change handler with useCallback
 	const handleInputChange = useCallback((field, value) => {
+		// Check if the field is a checkbox and convert the value to uppercase TRUE/FALSE
+		if (tableAccess[field]?.dataType === 'Checkbox') {
+			value = value ? 'TRUE' : 'FALSE';
+		}
+
 		setFormData(prevData => ({
 			...prevData,
 			[field]: value,
 		}));
-	}, []);
 
-	// Optimize date picker handlers
-	const showDatePicker = useCallback((field) => {
-		setDatePickerField(field);
-		setDatePickerVisibility(true);
-	}, []);
-
-	const hideDatePicker = useCallback(() => {
-		setDatePickerVisibility(false);
-	}, []);
-
-	const handleDateConfirm = useCallback((date) => {
-		if (!datePickerField) return;
-
-		const formattedDate = new Date(date)
-			.toLocaleDateString("en-GB")
-			.split("/")
-			.join("-");
-
-		handleInputChange(datePickerField, formattedDate);
-		hideDatePicker();
-	}, [datePickerField, handleInputChange, hideDatePicker]);
-
-	// Image selection optimized with useCallback
-	const selectImageFromGallery = useCallback(async (field) => {
-		try {
-			const response = await launchImageLibrary({
-				mediaType: 'photo',
-				quality: 0.5,
-			});
-
-			if (response.didCancel || response.errorCode) return;
-
-			// Process only when we have valid response data
-			if (response.assets?.[0]?.uri) {
-				const sourceUri = response.assets[0].uri;
-
-				// Update only the specific field's image URI
-				setImageUris(prev => ({
-					...prev,
-					[field]: sourceUri
-				}));
-
-				handleInputChange(field, sourceUri);
-			}
-		} catch (error) {
-			console.error('Error selecting image:', error);
-			showToast({
-				type: 'ERROR',
-				message: 'Failed to select image',
+		// Clear error for this field when user updates it
+		if (errors[field]) {
+			setErrors(prev => {
+				const newErrors = { ...prev };
+				delete newErrors[field];
+				return newErrors;
 			});
 		}
-	}, [handleInputChange, showToast]);
+	}, [errors, tableAccess]);
 
-	// Memoize input field renderer for better performance
-	const renderInputField = useCallback((field, fieldName) => {
-		const dataType = typeInfo?.[fieldName]?.dataType;
-		const dropdownItems = typeInfo?.[fieldName]?.dropdownItems;
-		if (fieldName === '__ID') return null;
+	// Update the selectImageFromGallery function to handle both camera and gallery
+	const selectImageFromGallery = useCallback(async (field) => {
+		try {
+			// Show action sheet to choose between camera and gallery
+			Alert.alert(
+				"Select Media",
+				"Choose media source",
+				[
+					{
+						text: "Camera",
+						onPress: async () => {
+							const response = await launchCamera({
+								mediaType: 'mixed',
+								quality: 0.5,
+								includeBase64: false,
+								saveToPhotos: true,
+							});
+
+							handleMediaResponse(response, field);
+						}
+					},
+					{
+						text: "Gallery",
+						onPress: async () => {
+							const response = await launchImageLibrary({
+								mediaType: 'mixed',
+								quality: 0.5,
+								selectionLimit: 1,
+							});
+
+							handleMediaResponse(response, field);
+						}
+					},
+					{
+						text: "Cancel",
+						style: "cancel"
+					}
+				]
+			);
+		} catch (error) {
+			console.error('Error selecting media:', error);
+			showToast({
+				type: 'ERROR',
+				message: 'Failed to select media',
+			});
+		}
+	}, [showToast]);
+
+	// Add a helper function to handle media response
+	const handleMediaResponse = useCallback((response, field) => {
+		if (response.didCancel || response.errorCode) return;
+
+		// Process only when we have valid response data
+		if (response.assets?.[0]?.uri) {
+			const sourceUri = response.assets[0].uri;
+			const mediaType = response.assets[0].type;
+
+			// Update imageUris with the selected media
+			setImageUris(prev => ({
+				...prev,
+				[field]: sourceUri
+			}));
+
+			// Update form data with the media URI
+			handleInputChange(field, sourceUri);
+
+			// Show success message based on media type
+			const mediaTypeText = mediaType?.startsWith('video/') ? 'video' : 'image';
+			// showToast({
+			// 	type: 'SUCCESS',
+			// 	message: `${mediaTypeText} selected successfully`,
+			// });
+		}
+	}, [handleInputChange]);
+
+	// Toggle accordion state
+	const toggleAccordion = useCallback((key) => {
+		setAccordionStates(prev => {
+			const newState = {
+				...prev,
+				[key]: {
+					isOpen: !prev[key]?.isOpen
+				}
+			};
+
+			// Handle animation
+			const isOpen = newState[key].isOpen;
+			const itemHeight = 40; // Height of each dropdown item
+			const maxHeight = Math.min(tableAccess[key]?.dropdownItems?.length * itemHeight, 200); // Max height of 200 or total items height
+
+			if (!accordionHeights.current[key]) {
+				accordionHeights.current[key] = new Animated.Value(0);
+			}
+
+			Animated.timing(accordionHeights.current[key], {
+				toValue: isOpen ? maxHeight : 0,
+				duration: 300,
+				useNativeDriver: false,
+			}).start();
+
+			return newState;
+		});
+	}, [tableAccess]);
+
+	// Integrated FloatingAccordion component within renderInputFields
+	const renderInputFields = useCallback((keys, datatype, fieldRequired, index) => {
+
+		if (keys === '__ID') return null;
+		// console.log('datatype : ', datatype)
+		if (datatype == 'Formula') {
+			return null
+		}
 
 		const commonInputStyles = {
 			fontSize: rf(15),
@@ -267,188 +449,555 @@ const UserAddNewData = ({ route }) => {
 			backgroundColor: 'white',
 		};
 
-		switch (dataType) {
+		const errorMessageStyle = {
+			color: 'red',
+			fontSize: rf(12),
+			fontFamily: 'Poppins-Regular',
+			marginTop: rs(2),
+		};
+
+		const hasError = errors[keys];
+
+		switch (datatype) {
 			case 'Text':
 				return (
-					<TextInput
-						ref={(ref) => (inputRefs.current[field] = ref)}
-						label={fieldName}
-						value={formData[field] || ''}
-						onChangeText={(text) => handleInputChange(field, text)}
-						underlineColor='#B9BDCF'
-						activeUnderlineColor='#4D8733'
-						textColor='black'
-						style={commonInputStyles}
-					/>
+					<View key={index} style={styles.inputGroup}>
+						<TextInput
+							ref={(ref) => (inputRefs.current[keys] = ref)}
+							label={keys + (fieldRequired ? ' *' : '')}
+							value={formData[keys] || ''}
+							onChangeText={(text) => handleInputChange(keys, text)}
+							underlineColor={hasError ? 'red' : '#B9BDCF'}
+							activeUnderlineColor={hasError ? 'red' : '#4D8733'}
+							textColor='black'
+							style={commonInputStyles}
+							error={hasError}
+						/>
+						{hasError && <Text style={errorMessageStyle}>{errors[keys]}</Text>}
+					</View>
+				);
+
+			case 'Email':
+				return (
+					<View key={index} style={styles.inputGroup}>
+						<TextInput
+							ref={(ref) => (inputRefs.current[keys] = ref)}
+							label={keys + (fieldRequired ? ' *' : '')}
+							value={formData[keys] || ''}
+							onChangeText={(text) => handleInputChange(keys, text)}
+							underlineColor={hasError ? 'red' : '#B9BDCF'}
+							activeUnderlineColor={hasError ? 'red' : '#4D8733'}
+							textColor='black'
+							keyboardType='email-address'
+							style={commonInputStyles}
+							error={hasError}
+						/>
+						{hasError && <Text style={errorMessageStyle}>{errors[keys]}</Text>}
+					</View>
+				);
+
+			case 'Image':
+				return (
+					<View key={index} style={styles.inputGroup}>
+						<TextInput
+							ref={(ref) => (inputRefs.current[keys] = ref)}
+							label={keys + (fieldRequired ? ' *' : '')}
+							value={formData[keys] || ''}
+							onChangeText={(text) => handleInputChange(keys, text)}
+							underlineColor={hasError ? 'red' : '#B9BDCF'}
+							activeUnderlineColor={hasError ? 'red' : '#4D8733'}
+							textColor='black'
+							style={commonInputStyles}
+							error={hasError}
+						/>
+						{hasError && <Text style={errorMessageStyle}>{errors[keys]}</Text>}
+					</View>
 				);
 
 			case 'Number':
 				return (
-					<TextInput
-						ref={(ref) => (inputRefs.current[field] = ref)}
-						label={fieldName}
-						value={formData[field] || ''}
-						onChangeText={(text) => handleInputChange(field, text)}
-						underlineColor='#B9BDCF'
-						activeUnderlineColor='#4D8733'
-						keyboardType='numeric'
-						textColor='black'
-						style={commonInputStyles}
-					/>
+					<View key={index} style={styles.inputGroup}>
+						<TextInput
+							ref={(ref) => (inputRefs.current[keys] = ref)}
+							label={keys + (fieldRequired ? ' *' : '')}
+							value={formData[keys] || ''}
+							onChangeText={(text) => {
+								if (/^\d*\.?\d*$/.test(text) || text === '') {
+									handleInputChange(keys, text);
+								}
+							}}
+							underlineColor={hasError ? 'red' : '#B9BDCF'}
+							activeUnderlineColor={hasError ? 'red' : '#4D8733'}
+							keyboardType='numeric'
+							textColor='black'
+							style={commonInputStyles}
+							error={hasError}
+						/>
+						{hasError && <Text style={errorMessageStyle}>{errors[keys]}</Text>}
+					</View>
+				);
+
+			case 'URL':
+				return (
+					<View key={index} style={styles.inputGroup}>
+						<TextInput
+							ref={(ref) => (inputRefs.current[keys] = ref)}
+							label={keys + (fieldRequired ? ' *' : '')}
+							value={formData[keys] || ''}
+							onChangeText={(text) => handleInputChange(keys, text)}
+							underlineColor={hasError ? 'red' : '#B9BDCF'}
+							activeUnderlineColor={hasError ? 'red' : '#4D8733'}
+							textColor='black'
+							keyboardType='url'
+							autoCapitalize='none'
+							style={commonInputStyles}
+							error={hasError}
+						/>
+						{hasError && <Text style={errorMessageStyle}>{errors[keys]}</Text>}
+					</View>
 				);
 
 			case 'Date':
 				return (
-					<View style={styles.dateInputContainer}>
-						<TextInput
-							ref={(ref) => (inputRefs.current[field] = ref)}
-							value={formData[field] || "dd-mm-yy"}
-							editable={false}
-							label={fieldName}
-							underlineColor='#B9BDCF'
-							activeUnderlineColor='#4D8733'
-							textColor="black"
-							style={[commonInputStyles, { flex: 1 }]}
-						/>
-						<TouchableOpacity
-							onPress={() => showDatePicker(field)}
-							style={styles.calendarButton}
-							hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-						>
-							<Feather name="calendar" size={rs(20)} color="#4D8733" />
-						</TouchableOpacity>
+					<View key={index} style={styles.inputGroup}>
+						<View style={styles.dateInputContainer}>
+							<TextInput
+								ref={(ref) => (inputRefs.current[keys] = ref)}
+								value={formData[keys] || ""}
+								placeholder="dd-mm-yyyy"
+								editable={false}
+								label={keys + (fieldRequired ? ' *' : '')}
+								underlineColor={hasError ? 'red' : '#B9BDCF'}
+								activeUnderlineColor={hasError ? 'red' : '#4D8733'}
+								textColor="black"
+								style={[commonInputStyles, { flex: 1 }]}
+								error={hasError}
+							/>
+							<TouchableOpacity
+								onPress={() => showPicker(keys, 'date')}
+								style={styles.calendarButton}
+								hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+							>
+								<Feather name="calendar" size={rs(20)} color="#4D8733" />
+							</TouchableOpacity>
+						</View>
+						{hasError && <Text style={errorMessageStyle}>{errors[keys]}</Text>}
+					</View>
+				);
+
+			case 'Date & Time':
+				return (
+					<View key={index} style={styles.inputGroup}>
+						<View style={styles.dateInputContainer}>
+							<TextInput
+								value={formData[keys] || ""}
+								placeholder="dd-mm-yyyy HH:MM AM/PM"
+								editable={false}
+								label={keys + (fieldRequired ? ' *' : '')}
+								underlineColor={hasError ? 'red' : '#B9BDCF'}
+								activeUnderlineColor={hasError ? 'red' : '#4D8733'}
+								textColor="black"
+								style={[commonInputStyles, { flex: 1 }]}
+								error={hasError}
+							/>
+							<TouchableOpacity
+								onPress={() => showPicker(keys, 'date-time')}
+								style={styles.calendarButton}
+								hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+							>
+								<Feather name="calendar" size={rs(20)} color="#4D8733" />
+							</TouchableOpacity>
+						</View>
+						{hasError && <Text style={errorMessageStyle}>{errors[keys]}</Text>}
+					</View>
+				);
+
+			case 'Time':
+				return (
+					<View key={index} style={styles.inputGroup}>
+						<View style={styles.dateInputContainer}>
+							<TextInput
+								ref={(ref) => (inputRefs.current[keys] = ref)}
+								value={formData[keys] || ""}
+								placeholder="HH:MM AM/PM"
+								editable={false}
+								label={keys + (fieldRequired ? ' *' : '')}
+								underlineColor={hasError ? 'red' : '#B9BDCF'}
+								activeUnderlineColor={hasError ? 'red' : '#4D8733'}
+								textColor="black"
+								style={[commonInputStyles, { flex: 1 }]}
+								error={hasError}
+							/>
+							<TouchableOpacity
+								onPress={() => showPicker(keys, 'time')}
+								style={styles.calendarButton}
+								hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+							>
+								<Feather name="clock" size={rs(20)} color="#4D8733" />
+							</TouchableOpacity>
+						</View>
+						{hasError && <Text style={errorMessageStyle}>{errors[keys]}</Text>}
 					</View>
 				);
 
 			case 'Dropdown Range':
-				if (dropdownItems?.length > 0) {
-					return (
-						<FloatingAccordion
-							field={fieldName}
-							dropdownItems={dropdownItems}
-							formData={formData}
-							handleInputChange={handleInputChange}
-						/>
-					);
+				const dropdownItems = tableAccess[keys]?.dropdownItems || [];
+				const isOpen = accordionStates[keys]?.isOpen || false;
+				const selectedItem = formData[keys] || '';
+
+				return (
+					<View key={index} style={styles.inputGroup}>
+						<View style={[
+							styles.accordionContainer,
+							hasError && { borderBottomColor: 'red' }
+						]}>
+							<TouchableOpacity
+								style={styles.accordionHeader}
+								onPress={() => toggleAccordion(keys)}
+								activeOpacity={0.7}
+							>
+								<View style={styles.accordionTitleContainer}>
+									<Text style={[
+										styles.accordionLabel,
+										selectedItem ? styles.accordionLabelSelected : null,
+										hasError && { color: 'red' }
+									]}>
+										{keys + (fieldRequired ? ' *' : '')}
+									</Text>
+									<View style={{ flexDirection: 'row', alignItems: 'center' }}>
+										<Text style={styles.accordionSelectedValue} numberOfLines={1}>
+											{selectedItem || 'Select an option'}
+										</Text>
+										{
+											selectedItem ? (
+												<TouchableOpacity
+													onPress={() => handleInputChange(keys, '')}
+													style={styles.clearIconButton}
+												>
+													<AntDesign name="close" size={18} color="#4D8733" />
+												</TouchableOpacity>
+											) : null
+										}
+									</View>
+								</View>
+								<Feather
+									name={isOpen ? "chevron-up" : "chevron-down"}
+									size={rs(20)}
+									color="#4D8733"
+								/>
+							</TouchableOpacity>
+
+							{isOpen && (
+
+
+								<View style={{ maxHeight: 150, overflow: 'hidden' }}>
+									{
+										<FlatList
+											data={dropdownItems}
+											keyExtractor={(item, index) => `dropdown-${keys}-${index}`}
+											renderItem={({ item }) => (
+												<TouchableOpacity
+													style={[
+														styles.accordionItem,
+														selectedItem === item && styles.accordionItemSelected
+													]}
+													onPress={() => {
+														handleInputChange(keys, item);
+														toggleAccordion(keys);
+													}}
+												>
+													<Text
+														style={[
+															styles.accordionItemText,
+															selectedItem === item && styles.accordionItemTextSelected
+														]}
+													>
+														{item}
+													</Text>
+												</TouchableOpacity>
+											)}
+											contentContainerStyle={styles.accordionScrollContent}
+											nestedScrollEnabled
+											showsVerticalScrollIndicator
+										/>
+
+									}
+								</View>
+							)
+							}
+						</View>
+						{hasError && <Text style={errorMessageStyle}>{errors[keys]}</Text>}
+					</View>
+				);
+
+			case 'Dropdown Item':
+				const dropdownItemOptions = tableAccess[keys]?.dropdownItems || [];
+				const isOpenOptions = accordionStates[keys]?.isOpen || false;
+				const selectedItemOptions = formData[keys] || '';
+
+				// Initialize accordion height if not exists
+				if (!accordionHeights.current[keys]) {
+					accordionHeights.current[keys] = new Animated.Value(0);
 				}
-				return null;
+
+				return (
+					<View key={index} style={styles.inputGroup}>
+						<View style={[
+							styles.accordionContainer,
+							hasError && { borderBottomColor: 'red' }
+						]}>
+							<TouchableOpacity
+								style={styles.accordionHeader}
+								onPress={() => toggleAccordion(keys)}
+								activeOpacity={0.7}
+							>
+								<View style={styles.accordionTitleContainer}>
+									<Text style={[
+										styles.accordionLabel,
+										selectedItemOptions ? styles.accordionLabelSelected : null,
+										hasError && { color: 'red' }
+									]}>
+										{keys + (fieldRequired ? ' *' : '')}
+									</Text>
+									<View style={{ flexDirection: 'row', alignItems: 'center' }}>
+										<Text style={styles.accordionSelectedValue} numberOfLines={1}>
+											{selectedItemOptions || 'Select an option'}
+										</Text>
+										{selectedItemOptions ? (
+											<TouchableOpacity
+												onPress={() => handleInputChange(keys, '')}
+												style={styles.clearIconButton}
+											>
+												<AntDesign name="close" size={rs(14)} color="#4D8733" />
+											</TouchableOpacity>
+										) : null}
+									</View>
+								</View>
+								<Feather
+									name={isOpenOptions ? "chevron-up" : "chevron-down"}
+									size={rs(20)}
+									color="#4D8733"
+								/>
+							</TouchableOpacity>
+
+
+							{
+								isOpenOptions && (
+
+									<View style={{ maxHeight: 150, overflow: 'hidden', backgroundColor:'CCCCFF', elevation:4, }}>
+										<FlatList
+											data={dropdownItemOptions}
+											keyExtractor={(item, index) => `dropdown-${keys}-${index}`}
+											renderItem={({ item }) => (
+												<TouchableOpacity
+													style={[
+														styles.accordionItem,
+														selectedItemOptions === item && styles.accordionItemSelected
+													]}
+													onPress={() => {
+														handleInputChange(keys, item);
+														setTimeout(() => {
+															toggleAccordion(keys);
+														}, 100);
+													}}
+												>
+													<Text
+														style={[
+															styles.accordionItemText,
+															selectedItemOptions === item && styles.accordionItemTextSelected
+														]}
+													>
+														{item}
+													</Text>
+												</TouchableOpacity>
+											)}
+											contentContainerStyle={styles.accordionScrollContent}
+											nestedScrollEnabled
+											showsVerticalScrollIndicator
+										/>
+
+									</View>
+								)
+							}
+						</View>
+						{hasError && <Text style={errorMessageStyle}>{errors[keys]}</Text>}
+					</View>
+				);
 
 			case 'File':
 				return (
-					<View style={styles.fileContainer}>
-
+					<View key={index} style={styles.inputGroup}>
 						<View style={styles.fileContainer}>
 							<View style={{ position: 'relative' }}>
-
 								<TouchableOpacity
-									onPress={() => selectImageFromGallery(field)}
-									style={styles.fileInputButton}
+									onPress={() => selectImageFromGallery(keys)}
+									style={[
+										styles.fileInputButton,
+										hasError && { borderColor: 'red' }
+									]}
 								>
-									<Text style={styles.fileButtonText}>Choose File</Text>
+									<Feather name="camera" size={rs(16)} color="#4D8733" style={styles.fileButtonIcon} />
+									<Text style={styles.fileButtonText}>Select Media</Text>
 								</TouchableOpacity>
 							</View>
 
 							<View style={styles.fileNameContainer}>
-								<Text style={{ color: '#4D8733', fontFamily: 'Poppins-Regular', fontSize: rs(10.5) }}>{fieldName}</Text>
+								<Text style={{
+									color: hasError ? 'red' : '#4D8733',
+									fontFamily: 'Poppins-Regular',
+									fontSize: rs(10.5)
+								}}>
+									{keys + (fieldRequired ? ' *' : '')}
+								</Text>
 								<Text
 									style={styles.fileName}
 									numberOfLines={1}
 									ellipsizeMode="middle"
 								>
-									{imageUris[field] ? imageUris[field].split('/').pop() : 'No file chosen'}
+									{imageUris[keys] ? imageUris[keys].split('/').pop() : 'No file chosen'}
 								</Text>
 							</View>
 						</View>
+						{hasError && <Text style={errorMessageStyle}>{errors[keys]}</Text>}
+					</View>
+				);
 
+			case 'Checkbox':
+				return (
+					<View key={index} style={styles.inputGroup}>
+						<View style={styles.switchContainer}>
+							<Text style={[
+								styles.switchLabel,
+								hasError && { color: 'red' }
+							]}>
+								{keys + (fieldRequired ? ' *' : '')}
+							</Text>
+							<Switch
+								value={formData[keys] === 'TRUE' || formData[keys] === true}
+								onValueChange={(value) => handleInputChange(keys, value)}
+								color="#4D8733"
+							/>
+						</View>
+						{hasError && <Text style={errorMessageStyle}>{errors[keys]}</Text>}
 					</View>
 				);
 
 			default:
-				return null;
+				return (
+					<View key={index} style={styles.inputGroup}>
+						<TextInput
+							ref={(ref) => (inputRefs.current[keys] = ref)}
+							label={keys + (fieldRequired ? ' *' : '')}
+							value={formData[keys] || ''}
+							onChangeText={(text) => handleInputChange(keys, text)}
+							underlineColor={hasError ? 'red' : '#B9BDCF'}
+							activeUnderlineColor={hasError ? 'red' : '#4D8733'}
+							textColor='black'
+							style={commonInputStyles}
+							error={hasError}
+						/>
+						{hasError && <Text style={errorMessageStyle}>{errors[keys]}</Text>}
+					</View>
+				);
 		}
-	}, [formData, typeInfo, handleInputChange, showDatePicker, selectImageFromGallery, imageUris]);
+	}, [formData, errors, handleInputChange, showPicker, selectImageFromGallery, imageUris, tableAccess, accordionStates, toggleAccordion, showDateRangePicker]);
 
-	// Create a memoized list of form fields
-	const formFields = useMemo(() => {
-		return fieldData.map((fieldName, index) => (
-			<View key={`field-${index}`} style={styles.inputGroup}>
-				{renderInputField(fieldName, fieldName)}
-			</View>
-		));
-	}, [fieldData, renderInputField]);
+	// console.log('allInputData : ', allInputData)
+
+	// console.log('globalFieldSettings : ', globalFieldSettings)
 
 	return (
-		<KeyboardAvoidingView
-			style={styles.mainContainer}
-			behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-			keyboardVerticalOffset={Platform.OS === 'ios' ? rs(20) : 0}
-		>
+		<SafeAreaView style={styles.container}>
 			<StatusBar barStyle="dark-content" backgroundColor="#F4FAF4" />
-
-			<View style={styles.container}>
-				{/* Header */}
-				<View style={styles.header}>
-					<Text style={styles.usersText}>Tables</Text>
-					<TouchableOpacity
-						style={styles.backButton}
-						onPress={() => navigation.goBack()}
-						hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-					>
-						<Feather name="chevron-left" size={rs(20)} color="black" />
-						<Text style={styles.headerTitle}>Add New Data</Text>
-					</TouchableOpacity>
-				</View>
-
-				{/* Form */}
-				<ScrollView
-					ref={scrollViewRef}
-					contentContainerStyle={[
-						styles.formContainer,
-						// { paddingBottom: keyboardVisible ? rs(100) : rs(20) }
-					]}
-					showsVerticalScrollIndicator={false}
-					keyboardShouldPersistTaps="handled"
+			<View style={styles.header}>
+				<Text style={styles.usersText}>Tables</Text>
+				<TouchableOpacity
+					style={styles.backButton}
+					onPress={() => navigation.goBack()}
+					hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
 				>
-					<View style={styles.form}>
-						{formFields}
-					</View>
-				</ScrollView>
-
-				{/* Footer */}
-				<View style={styles.footer}>
-					<TouchableOpacity
-						onPress={handleSave}
-						disabled={isSubmitting || isEmptyForm}
-						style={[
-							styles.saveBtn,
-							(isSubmitting || isEmptyForm) && styles.disabledButton
-						]}
-						activeOpacity={0.7}
-					>
-						{isSubmitting ? (
-							<ActivityIndicator size={rs(20)} color="white" />
-						) : (
-							<Text style={styles.saveBtnText}>Add Data</Text>
-						)}
-					</TouchableOpacity>
-				</View>
+					<Feather name="chevron-left" size={rs(20)} color="black" />
+					<Text style={styles.headerTitle}>Add New Data</Text>
+				</TouchableOpacity>
 			</View>
 
-			{/* Date Picker Modal */}
-			<DateTimePickerModal
-				isVisible={isDatePickerVisible}
+			<ScrollView
+				style={styles.formContainer}
+				contentContainerStyle={styles.formScrollContent}
+				showsVerticalScrollIndicator={false}
+			>
+				<View style={styles.form}>
+					{allInputData.map((item, index) => {
+						const keys = item?.key;
+						const datatype = item?.value?.dataType;
+						const fieldRequired = item?.value?.required;
+						const newKeys = String(keys);
+						const matchCondition = globalPermission[`${newKeys}`];
+						const role = tableInfo[0]?.role;
+
+						// console.log('item : ', item)
+
+						// console.log('role : ', role)
+
+						if (role === 'ADMIN') {
+							return renderInputFields(keys, datatype, fieldRequired, index);
+						}
+
+						if (role === 'USER') {
+							if (matchCondition?.createAccess) {
+								return renderInputFields(keys, datatype, fieldRequired, index);
+							} else {
+								return null;
+							}
+						}
+					})}
+				</View>
+			</ScrollView>
+
+			<DatePicker
+				modal
 				mode="date"
-				onConfirm={handleDateConfirm}
-				onCancel={hideDatePicker}
+				open={datePickerOpen}
+				date={tempDate || new Date()}
+				onConfirm={handlePickerConfirm}
+				onCancel={() => {
+					setDatePickerOpen(false);
+					setCurrentField(null);
+				}}
 			/>
-		</KeyboardAvoidingView>
+
+			<DatePicker
+				modal
+				mode="time"
+				open={timePickerOpen}
+				date={tempDate || new Date()}
+				onConfirm={handlePickerConfirm}
+				onCancel={() => {
+					setTimePickerOpen(false);
+					setCurrentField(null);
+				}}
+			/>
+
+			<TouchableOpacity
+				style={[styles.footer, isEmptyForm && styles.disabledButton]}
+				onPress={handleSave}
+				disabled={isEmptyForm || isSubmitting}
+			>
+				<View style={styles.saveBtn}>
+					{isSubmitting ? (
+						<ActivityIndicator color="#FFFFFF" size="small" />
+					) : (
+						<Text style={styles.saveBtnText}>Add Data</Text>
+					)}
+				</View>
+			</TouchableOpacity>
+		</SafeAreaView>
 	);
 };
 
+export default UserAddNewData;
+
 const styles = StyleSheet.create({
-	mainContainer: {
-		flex: 1,
-	},
 	container: {
 		flex: 1,
 		backgroundColor: '#F4FAF4',
@@ -477,7 +1026,11 @@ const styles = StyleSheet.create({
 		marginLeft: rs(2),
 	},
 	formContainer: {
+		flex: 1,
+	},
+	formScrollContent: {
 		flexGrow: 1,
+		paddingBottom: rs(20),
 	},
 	form: {
 		backgroundColor: '#FFF',
@@ -492,7 +1045,7 @@ const styles = StyleSheet.create({
 		elevation: 2,
 	},
 	inputGroup: {
-		marginBottom: rs(5),
+		marginBottom: rs(15),
 	},
 	dateInputContainer: {
 		flexDirection: 'row',
@@ -516,9 +1069,13 @@ const styles = StyleSheet.create({
 		paddingBottom: rs(10),
 		gap: rs(10),
 	},
+	fileButtonIcon: {
+		marginRight: rs(6),
+	},
 	fileInputButton: {
 		borderColor: '#B9BDCF',
 		borderWidth: 1,
+		flexDirection: 'row',
 		justifyContent: 'center',
 		alignItems: 'center',
 		paddingHorizontal: rs(12),
@@ -553,6 +1110,7 @@ const styles = StyleSheet.create({
 		borderRadius: rs(10),
 		alignItems: 'center',
 		justifyContent: 'center',
+		flexDirection: 'row',
 	},
 	disabledButton: {
 		opacity: 0.5,
@@ -565,57 +1123,118 @@ const styles = StyleSheet.create({
 	},
 	// Accordion styles
 	accordionContainer: {
-		borderBottomWidth: 0.6,
+		borderBottomWidth: 1,
 		borderBottomColor: '#B9BDCF',
-		overflow: 'hidden',
 	},
 	accordionHeader: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		alignItems: 'center',
-		// paddingVertical: rs(15),
+		paddingVertical: rs(10),
 	},
 	accordionTitleContainer: {
 		flex: 1,
+		marginRight: rs(10),
 	},
 	accordionLabel: {
+		fontSize: rf(12),
 		color: '#848486',
-		fontSize: rf(10.5),
 		fontFamily: 'Poppins-Regular',
 	},
 	accordionLabelSelected: {
 		color: '#4D8733',
 	},
 	accordionSelectedValue: {
+		fontSize: rf(14),
 		color: '#222327',
-		fontSize: rf(15),
 		fontFamily: 'Poppins-Regular',
 		marginTop: rs(2),
+		flex: 1, // Add this
+	},
+	// Add this new style for the clear icon button
+	clearIconButton: {
+
+		height: rs(30),
+		width: rs(30),
+		borderRadius: rs(15),
+		backgroundColor: '#F4FAF4',
+		justifyContent: 'center',
+		alignItems: 'center',
 	},
 	accordionBody: {
 		overflow: 'hidden',
+		// height:300,
 	},
 	accordionScrollContent: {
-		// paddingBottom: rs(10),
+		// paddingVertical: rs(5),
 	},
 	accordionItem: {
-		paddingVertical: rs(10),
-		paddingHorizontal: rs(5),
-		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: '#E5E5E5',
+		paddingVertical: rs(5),
+		paddingHorizontal: rs(15),
+		// borderTopColor:'#B9BDCF',
+		// borderTopWidth:0.8,
 	},
 	accordionItemSelected: {
 		backgroundColor: '#F4FAF4',
 	},
 	accordionItemText: {
-		color: '#222327',
 		fontSize: rf(14),
+		color: '#222327',
 		fontFamily: 'Poppins-Regular',
 	},
 	accordionItemTextSelected: {
 		color: '#4D8733',
 		fontFamily: 'Poppins-Medium',
 	},
+	dateTimeContainer: {
+		gap: rs(10),
+	},
+	timeInputContainer: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+	},
+	dateRangeContainer: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		paddingVertical: rs(10),
+		gap: rs(10),
+	},
+	dateRangeButton: {
+		flex: 1,
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		paddingVertical: rs(8),
+		paddingHorizontal: rs(10),
+		borderWidth: 1,
+		borderColor: '#B9BDCF',
+		borderRadius: rs(5),
+		backgroundColor: '#F7F7F7',
+	},
+	dateRangeButtonText: {
+		color: '#222327',
+		fontSize: rf(14),
+		fontFamily: 'Poppins-Regular',
+	},
+	dateRangeSeparator: {
+		color: '#848486',
+		fontSize: rf(16),
+		fontFamily: 'Poppins-Medium',
+	},
+	switchContainer: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		paddingVertical: rs(10),
+		borderBottomWidth: 0.6,
+		borderBottomColor: '#B9BDCF',
+	},
+	switchLabel: {
+		color: '#222327',
+		fontSize: rf(15),
+		fontFamily: 'Poppins-Regular',
+		flex: 1,
+	},
 });
 
-export default UserAddNewData;

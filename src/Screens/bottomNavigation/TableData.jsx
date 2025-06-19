@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, FlatList, View } from 'react-native';
+import { StyleSheet, Text, FlatList, View, Keyboard } from 'react-native';
 import TableCardContent from '../../Components/TableCardContent';
 import { useGlobalContext } from '../../Context/GlobalContext';
 import { responsiveFontSize, responsiveHeight } from 'react-native-responsive-dimensions';
@@ -8,37 +8,28 @@ import { UIActivityIndicator } from 'react-native-indicators';
 const TableData = ({ navigation }) => {
   const [tableAccess, setTableAccess] = useState(null);
   const [tableLoader, setTableLoader] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const { getTables, data, getDataByToken, getUsers } = useGlobalContext();
 
   const isDataEqual = (prevData, newData) => {
     return JSON.stringify(prevData) === JSON.stringify(newData);
   };
 
-  // useEffect(() => {
-  //   let interval;
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => setKeyboardVisible(true)
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => setKeyboardVisible(false)
+    );
 
-  //   const fetchData = async () => {
-  //     try {
-  //       const tables = await getTables();
-  //       const tokenData = await getDataByToken();
-
-  //       if (!isDataEqual(data, tables)) {
-  //       }
-
-  //       if (!isDataEqual(tableAccess, tokenData)) {
-  //         setTableAccess(tokenData);
-  //       }
-  //     } catch (error) {
-  //       console.error('Error fetching data:', error);
-  //     }
-  //   };
-
-  //   fetchData();
-
-  //   interval = setInterval(fetchData, 5000);
-
-  //   return () => clearInterval(interval);
-  // }, [data, tableAccess]);
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -64,20 +55,10 @@ const TableData = ({ navigation }) => {
   }, []);
 
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        await getUsers();
 
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
-    fetchUser();
-  }, [])
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, keyboardVisible && styles.containerKeyboardVisible]}>
       {
         tableLoader ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -85,6 +66,7 @@ const TableData = ({ navigation }) => {
           </View>
         ) : (
           <FlatList
+            showsVerticalScrollIndicator={false}
             data={data}
             keyExtractor={(item, index) => index}
             renderItem={({ item }) => {
@@ -92,11 +74,12 @@ const TableData = ({ navigation }) => {
                 (accessItem) => accessItem._id === item._id
               );
               if (matchingTableAccess) {
+
                 return (
                   <View style={styles.card}>
                     <TableCardContent
-                      data={item}
-                      tableAccess={matchingTableAccess?.userFieldSettings}
+                      item={item}
+                      tableAccess={item?.fieldSettings}
                     />
                   </View>
                 );
@@ -122,7 +105,11 @@ export default TableData;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginBottom: 65,
+    marginBottom: responsiveHeight(10),
+    paddingTop: 10
+  },
+  containerKeyboardVisible: {
+    marginBottom: 0,
   },
   card: {
     width: '90%',
@@ -132,12 +119,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     elevation: 3,
     marginBottom: 20,
-    marginTop: 5,
+    marginTop: 0,
     alignSelf: 'center'
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: responsiveFontSize(2),
+    fontFamily: 'Poppins-Medium',
+    color: 'black',
+    marginTop: 20,
   },
 });

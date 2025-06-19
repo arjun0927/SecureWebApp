@@ -4,50 +4,55 @@ import {
   Text,
   View,
   TouchableOpacity,
-  ScrollView,
   KeyboardAvoidingView,
   Platform,
   FlatList,
   Alert,
+  ScrollView,
+  Dimensions,
+  TouchableWithoutFeedback,
+  Keyboard
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
-import { responsiveFontSize } from 'react-native-responsive-dimensions';
+import { responsiveFontSize, responsiveHeight } from 'react-native-responsive-dimensions';
 import { ActivityIndicator, TextInput } from 'react-native-paper';
 import axios from 'axios';
 import { useGlobalContext } from '../Context/GlobalContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Backhandler from './Backhandler';
+import getToken from './getToken';
+
+const { height } = Dimensions.get('window');
 
 const AddNewUsers = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [selectedTables, setSelectedTables] = useState([]); // For multiple table selections
+  const [selectedTables, setSelectedTables] = useState([]);
   const [isAccordionOpen, setIsAccordionOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
 
   const navigation = useNavigation();
-  const { getTables, data, showToast, getUsers } = useGlobalContext();
+  const { getTables, data, showToast, getUsers, users, setUsers } = useGlobalContext();
 
   Backhandler();
 
   useEffect(() => {
-    const fetchAccordionData = async () => {
-      await getTables(); // Fetch tables from API
+    const fetchTables = async () => {
+      await getTables();
     };
-    fetchAccordionData();
+    fetchTables();
   }, []);
 
   const handleTableSelect = (table) => {
-    // Toggle table selection
-    if (selectedTables.includes(table)) {
-      setSelectedTables((prev) => prev.filter((t) => t !== table));
-      setIsAccordionOpen(false)
+    if (selectedTables.some(t => t._id === table._id)) {
+      setSelectedTables((prev) => prev.filter((t) => t._id !== table._id));
+      setIsAccordionOpen(false);
     } else {
       setSelectedTables((prev) => [...prev, table]);
-      setIsAccordionOpen(false)
+      setIsAccordionOpen(false);
     }
   };
 
@@ -60,9 +65,7 @@ const AddNewUsers = () => {
     setIsLoading(true);
     try {
       const userId = await AsyncStorage.getItem('userId');
-      const data = await AsyncStorage.getItem('loginInfo');
-      const parsedData = JSON.parse(data);
-      const token = parsedData?.token;
+      const token = await getToken();
 
       // Prepare `tablesAccess` entries for each selected table
       const tablesAccess = selectedTables.map((table) => {
@@ -95,7 +98,7 @@ const AddNewUsers = () => {
       const sendData = {
         allowEveryIP: true,
         allowEveryTime: true,
-        askOTP: true,
+        askOTP: false,
         blockUser: false,
         createdBy: userId,
         email,
@@ -124,11 +127,13 @@ const AddNewUsers = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+      if (response?.data?.error) {
+        showToast({ type: 'ERROR', message: response?.data?.error });
+        return;
+      }
 
-      // console.log('response Add new Users', response.data);
-
-      if (response.data) {
-        await getUsers();
+      if (response?.data) {
+        setUsers([...users, response?.data])
         showToast({ type: 'SUCCESS', message: 'User Created Successfully' });
         navigation.goBack();
       }
@@ -143,152 +148,173 @@ const AddNewUsers = () => {
   const isFormValid = name && email && password && selectedTables.length > 0;
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.usersText}>Users</Text>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-            <Feather name="chevron-left" size={24} color="black" />
-            <Text style={styles.headerTitle}>Add New User</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.form}>
-
-          <TextInput
-            label="Name*"
-            value={name}
-            onChangeText={setName}
-            underlineColor="#B9BDCF"
-            activeUnderlineColor="#B9BDCF"
-            textColor="black"
-            style={styles.input}
-          />
-          <TextInput
-            label="Email*"
-            value={email}
-            keyboardType="email-address"
-            onChangeText={setEmail}
-            underlineColor="#B9BDCF"
-            activeUnderlineColor="#B9BDCF"
-            textColor="black"
-            style={styles.input}
-          />
-          <View style={styles.passwordContainer}>
-            <TextInput
-              label={'Password'}
-              value={password}
-              secureTextEntry={!passwordVisible}
-              onChangeText={setPassword}
-              underlineColor='#B9BDCF'
-              activeUnderlineColor='#B9BDCF'
-              style={styles.input}
-            />
+    <TouchableWithoutFeedback onPress={() => setIsAccordionOpen(false)}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Text style={styles.usersText}>Users</Text>
             <TouchableOpacity
-              onPress={() => setPasswordVisible(!passwordVisible)}
-              style={styles.eyeIcon}
+              style={{ flexDirection: 'row', alignItems: 'center' }}
+              onPress={() => navigation.goBack()}
             >
-              <Feather
-                name={passwordVisible ? 'eye' : 'eye-off'}
-                size={18}
-                color="#222327"
-              />
+              <Feather name="chevron-left" size={24} color="black" />
+              <Text style={styles.headerTitle}>Add New User</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.accordionContainer}>
-            <TouchableOpacity onPress={() => setIsAccordionOpen(!isAccordionOpen)}>
-              <View style={styles.accordionHeader}>
-                <Text style={styles.accordionHeaderText}>
-                  <View style={styles.selectedTableContainer}>
-                    {selectedTables.length > 0 ? (
-                      selectedTables.map((table, index) => (
-                        <View key={index} style={styles.selectedTableItem}>
-                          <Text style={styles.selectedTableText}>{table.tableName}</Text>
-                          <TouchableOpacity
-                            onPress={() => {
-                              const updatedTables = selectedTables.filter((t) => t !== table);
-                              setSelectedTables(updatedTables);
-                            }}
-                            style={styles.clearButton}
-                          >
-                            <Feather name="x" size={18} color="black" />
-                          </TouchableOpacity>
-                        </View>
-                      ))
-                    ) : (
-                      <Text style={styles.accordionHeaderText}>Select Tables</Text>
-                    )}
-                  </View>
 
+          <FlatList
+            data={[{ key: 'form' }]}
+            renderItem={() => (
+              <View style={styles.form}>
+                {/* Name Input */}
+                <View style={styles.inputGroup}>
+                  <TextInput
+                    label={'Name'}
+                    value={name}
+                    textColor='black'
+                    onChangeText={setName}
+                    underlineColor='#B9BDCF'
+                    activeUnderlineColor='#B9BDCF'
+                    style={styles.input}
+                  />
+                </View>
 
-                </Text>
-                <Feather
-                  name={isAccordionOpen ? 'chevron-down' : 'chevron-right'}
-                  size={23}
-                  color="black"
-                />
-              </View>
-            </TouchableOpacity>
+                {/* Email Input */}
+                <View style={styles.inputGroup}>
+                  <TextInput
+                    label={'Email'}
+                    value={email}
+                    textColor='black'
+                    keyboardType="email-address"
+                    onChangeText={setEmail}
+                    underlineColor='#B9BDCF'
+                    activeUnderlineColor='#B9BDCF'
+                    style={styles.input}
+                  />
+                </View>
 
-            {isAccordionOpen && (
-              <View
-                style={{
-                  backgroundColor: 'white',
-                  marginTop: 10,
-                  borderRadius: 5,
-                  paddingLeft: 5,
-                  width: '95%',
-                  height: 170,
-                  alignSelf: 'center',
-                  elevation: 1,
-                }}
-              >
-                <FlatList
-                  data={data}
-                  keyExtractor={(item) => item._id}
-                  renderItem={({ item }) => (
+                {/* Password Input */}
+                <View style={styles.inputGroup}>
+                  <View style={styles.passwordContainer}>
+                    <TextInput
+                      label={'Password'}
+                      value={password}
+                      textColor='black'
+                      secureTextEntry={!passwordVisible}
+                      onChangeText={setPassword}
+                      underlineColor='#B9BDCF'
+                      activeUnderlineColor='#B9BDCF'
+                      style={styles.input}
+                    />
                     <TouchableOpacity
-                      onPress={() => handleTableSelect(item)}
-                      style={styles.accordionItem}
+                      onPress={() => setPasswordVisible(!passwordVisible)}
+                      style={styles.eyeIcon}
                     >
-                      <Text
-                        style={[
-                          styles.accordionItemText,
-                          selectedTables.includes(item) && styles.selectedItemText,
-                        ]}
-                      >
-                        {item.tableName}
-                      </Text>
+                      <Feather
+                        name={passwordVisible ? 'eye' : 'eye-off'}
+                        size={18}
+                        color="#222327"
+                      />
                     </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Tables Accordion */}
+                <View style={styles.accordionContainer}>
+                  <TouchableOpacity
+                    onPress={() => setIsAccordionOpen(!isAccordionOpen)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.accordionHeader}>
+                      <View style={styles.selectedTableContainer}>
+                        {selectedTables.length > 0 ? (
+                          selectedTables.map((table, index) => (
+                            <View key={index} style={styles.selectedTableItem}>
+                              <Text style={styles.selectedTableText}>{table.tableName}</Text>
+                              <TouchableOpacity
+                                onPress={() => {
+                                  const updatedTables = selectedTables.filter((t) => t._id !== table._id);
+                                  setSelectedTables(updatedTables);
+                                }}
+                                style={styles.clearButton}
+                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                              >
+                                <Feather name="x" size={16} color="#666" />
+                              </TouchableOpacity>
+                            </View>
+                          ))
+                        ) : (
+                          <Text style={styles.accordionHeaderText}>Select Tables</Text>
+                        )}
+                      </View>
+                      <Feather
+                        name={isAccordionOpen ? 'chevron-down' : 'chevron-right'}
+                        size={20}
+                        color="#666"
+                      />
+                    </View>
+                  </TouchableOpacity>
+
+                  {isAccordionOpen && (
+                    <View style={styles.accordionContent}>
+                      <ScrollView nestedScrollEnabled={true}>
+                        {data.map((item) => (
+                          <TouchableOpacity
+                            key={item._id}
+                            onPress={() => handleTableSelect(item)}
+                            style={styles.accordionItem}
+                            activeOpacity={0.7}
+                          >
+                            <Text
+                              style={[
+                                styles.accordionItemText,
+                                selectedTables.some(t => t._id === item._id) && styles.selectedItemText,
+                              ]}
+                            >
+                              {item.tableName}
+                            </Text>
+
+                            {selectedTables.some(t => t._id === item._id) && (
+                              <Feather name="check" size={18} color="#4D8733" />
+                            )}
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
                   )}
-                />
+
+                </View>
               </View>
             )}
+            keyExtractor={() => 'form'}
+            contentContainerStyle={{ paddingBottom: 100 }}
+          />
+
+          {/* Save Button */}
+          <View style={styles.footer}>
+            <TouchableOpacity
+              onPress={isFormValid && !isLoading ? handleSave : null}
+              disabled={!isFormValid || isLoading}
+              style={[
+                styles.saveBtn,
+                { opacity: isFormValid && !isLoading ? 1 : 0.5 }
+              ]}
+            >
+              <Text style={styles.saveBtnText}>
+                {isLoading ? <ActivityIndicator size={25} color='white' /> : 'Save'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
-
-        {/* Save Button */}
-        <View style={styles.footer}>
-          <TouchableOpacity
-            onPress={isFormValid && !isLoading ? handleSave : null}
-            disabled={!isFormValid || isLoading}
-            style={[styles.saveBtn, { opacity: isFormValid && !isLoading ? 1 : 0.5 }]}
-          >
-            <Text style={styles.saveBtnText}>
-              {isLoading ? <ActivityIndicator size={25} color="white" /> : 'Save'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 };
 
 export default AddNewUsers;
-
 
 const styles = StyleSheet.create({
   container: {
@@ -303,122 +329,137 @@ const styles = StyleSheet.create({
   usersText: {
     color: '#848486',
     fontSize: responsiveFontSize(2),
-    fontWeight: '400',
+    fontFamily: 'Poppins-Regular',
   },
   headerTitle: {
     color: '#222327',
     fontSize: responsiveFontSize(2.3),
-    fontWeight: '500',
-    marginLeft: 5,
+    fontFamily: 'Poppins-Medium',
   },
   form: {
-    paddingHorizontal: 10,
-    flex: 1,
-    flexDirection: 'column',
+    paddingHorizontal: 20,
     backgroundColor: '#FFF',
     borderRadius: 15,
     padding: 15,
-    marginHorizontal: 20,
-    marginVertical: 10,
+    width: '90%',
+    alignSelf: 'center',
   },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  eyeIcon: {
-    position: 'absolute',
-    right: 5,
+  inputGroup: {
+    marginBottom: 10,
   },
   input: {
-    width: '100%',
-    color: '#000',
-    fontSize: responsiveFontSize(2),
-    backgroundColor: 'white',
+    height: responsiveHeight(5),
+    color: 'black',
+    fontSize: responsiveFontSize(1.9),
     fontFamily: 'Poppins-Regular',
-    marginBottom: 15,
+    backgroundColor: 'white',
+    flex: 1,
   },
-  accordionContent: {
-    paddingTop: 10,
-    borderWidth: 0.5,
-    borderColor: '#DEE0EA',
-    marginTop: 10,
-    borderRadius: 15,
-    paddingHorizontal: 10,
+  passwordContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-
+  eyeIcon: {
+    // padding: 5,
+  },
   accordionContainer: {
     marginBottom: 15,
-    marginTop: 10
+    width: '100%',
   },
   accordionHeader: {
     paddingHorizontal: 10,
+    paddingVertical: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderRadius: 8,
+    position: 'relative',
   },
   accordionHeaderText: {
-    color: 'black',
-    fontSize: responsiveFontSize(2),
-    fontWeight: '400',
-  },
-  selectedTableContainer: {
-    // paddingVertical: 2,
-    flexDirection: 'row',
-    gap: 10,
+    fontSize: responsiveFontSize(1.9),
+    fontFamily: 'Poppins-Regular',
     flex: 1,
-    flexWrap: 'wrap'
+    color: '#222327',
   },
-  selectedTableItem: {
-    flexDirection: 'row',
-    gap: 4,
-    backgroundColor: '#E9EAF1',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderRadius: 10,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderWidth: 0.7,
-    borderColor: '#D4D6DF'
+  accordionContent: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E9EAF1',
+    maxHeight: 0.2 * height,
+    shadowColor: '#000',
+    position: 'absolute',
+    top: '100%',
+    width: '100%',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    overflow: 'hidden',
   },
-  selectedTableText: {
-    fontSize: responsiveFontSize(1.5),
-  },
+
   accordionItem: {
-    paddingVertical: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 15,
     borderBottomWidth: 1,
     borderColor: '#EEEFF6',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   accordionItemText: {
-    fontSize: 16,
-    marginLeft: 5,
-  },
-  noBorder: {
-    borderBottomWidth: 0,
+    fontSize: responsiveFontSize(1.5),
+    fontFamily: 'Poppins-Regular',
+    color: '#222327',
   },
   selectedItemText: {
     color: '#4D8733',
-    fontWeight: '600',
+    fontFamily: 'Poppins-Regular',
+  },
+  selectedTableContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    flex: 1,
+    marginRight: 10,
+  },
+  selectedTableItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E9EAF1',
+    borderRadius: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: '#D4D6DF',
+    marginBottom: 4,
+  },
+  selectedTableText: {
+    fontSize: responsiveFontSize(1.5),
+    color: '#222327',
+    marginRight: 4,
+  },
+  clearButton: {
+    padding: 2,
   },
   footer: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 20,
-    backgroundColor: '#F4FAF4',
+    bottom: 20,
+    width: '100%',
+    alignItems: 'center',
   },
   saveBtn: {
     backgroundColor: '#4D8733',
-    paddingVertical: 15,
+    paddingVertical: 13,
     width: '40%',
     alignSelf: 'center',
     borderRadius: 10,
     alignItems: 'center',
   },
   saveBtnText: {
-    color: '#FCFDFF',
-    fontSize: responsiveFontSize(2.3),
-    fontWeight: '600',
+    color: 'white',
+    fontFamily: 'Poppins-Medium',
+    fontSize: responsiveFontSize(2),
   },
 });

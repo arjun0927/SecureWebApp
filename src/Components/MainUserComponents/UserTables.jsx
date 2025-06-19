@@ -9,7 +9,7 @@ const UserTables = ({ navigation }) => {
   const [tableAccess, setTableAccess] = useState(null);
   const [tableLoader, setTableLoader] = useState(false);
   const { getDataByToken, getTables, data, setData } = useGlobalContext();
-  
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -18,9 +18,6 @@ const UserTables = ({ navigation }) => {
         const tokenData = await getDataByToken();
         if (tokenData) {
           setTableLoader(false);
-        }
-
-        if (tokenData) {
           setTableAccess(tokenData);
         }
       } catch (error) {
@@ -43,22 +40,14 @@ const UserTables = ({ navigation }) => {
             data={data}
             keyExtractor={(item, index) => index.toString()}
             renderItem={({ item }) => {
-              if (tableAccess) {
-                const matchingTableAccess = tableAccess.find((accessItem) => accessItem._id === item._id);
-
-                if (matchingTableAccess) {
-                  return (
-                    <View style={styles.card}>
-                      <UserTableCard
-                        data={item}
-                        tableAccess={matchingTableAccess?.userFieldSettings}
-                      />
-                      
-                    </View>
-                  );
-                }
-              }
-              return null;
+              return (
+                <View style={styles.card}>
+                  <UserTableCard
+                    data={item}
+                    tableAccess={item?.fieldSettings}
+                  />
+                </View>
+              );
             }}
             ListEmptyComponent={() => (
               <View style={styles.emptyContainer}>
@@ -66,7 +55,6 @@ const UserTables = ({ navigation }) => {
               </View>
             )}
           />
-
         )
       }
     </View>
@@ -103,3 +91,27 @@ const styles = StyleSheet.create({
   },
 
 });
+
+{/* <FlatList
+            data={data}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={({ item }) => {
+              if (tableAccess) {
+                const matchingTableAccess = tableAccess.find((accessItem) => accessItem._id === item._id);
+                // console.log('matching tableaccess : ', matchingTableAccess)
+                if (matchingTableAccess) {
+
+                  return (
+                    <View style={styles.card}>
+                      <UserTableCard
+                        data={item}
+                        tableAccess={item?.fieldSettings}
+                        item={matchingTableAccess}
+                      />
+
+                    </View>
+                  );
+                }
+              }
+              return null;
+            }} */}

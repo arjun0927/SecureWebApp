@@ -1,7 +1,7 @@
 import React from 'react';
 import { SvgXml } from 'react-native-svg'; // Importing the SvgXml component to render raw SVG data
 
-const YourSvgComponent = () => {
+const YourSvgComponent = ({width, height}) => {
   const svgMarkup = `
     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 13 13" fill="none">
       <g clip-path="url(#clip0_1155_1897)">
@@ -16,7 +16,7 @@ const YourSvgComponent = () => {
     </svg>
   `;
 
-  return <SvgXml xml={svgMarkup} width="13" height="13" />;
+  return <SvgXml xml={svgMarkup} width={width} height={height} />;
 };
 
 export default YourSvgComponent;

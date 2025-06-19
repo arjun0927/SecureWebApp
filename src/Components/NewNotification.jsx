@@ -1,4 +1,4 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View, Modal, Dimensions, StatusBar, SafeAreaView, ActivityIndicator, Platform } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View, Modal, Dimensions, StatusBar, SafeAreaView, ActivityIndicator, Platform, TextInput, Animated, Easing, PanResponder, FlatList } from 'react-native';
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { responsiveFontSize, responsiveHeight, responsiveWidth } from 'react-native-responsive-dimensions';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -6,77 +6,28 @@ import SearchSvg from '../assets/Svgs/SearchSvg';
 import { FlashList } from "@shopify/flash-list";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import ImageViewer from 'react-native-image-zoom-viewer';
 import Video from 'react-native-video';
 import Feather from 'react-native-vector-icons/Feather';
-import Orientation from 'react-native-orientation-locker'; // You'll need to install this package
+import { UIActivityIndicator } from 'react-native-indicators';
+import { ImageZoom } from '@likashefqet/react-native-image-zoom';
 
 const { width, height } = Dimensions.get('window');
-
-// Custom hook for handling orientation
-const useOrientation = () => {
-  const [orientation, setOrientation] = useState('PORTRAIT');
-
-  useEffect(() => {
-    // Get initial orientation
-    Orientation.getOrientation((orientation) => {
-      setOrientation(orientation);
-    });
-
-    // Add event listener for orientation changes
-    Orientation.addOrientationListener((orientation) => {
-      setOrientation(orientation);
-    });
-
-    // Clean up
-    return () => {
-      Orientation.removeOrientationListener();
-    };
-  }, []);
-
-  const lockToPortrait = () => {
-    Orientation.lockToPortrait();
-  };
-
-  const lockToLandscape = () => {
-    Orientation.lockToLandscape();
-  };
-
-  const unlockOrientation = () => {
-    Orientation.unlockAllOrientations();
-  };
-
-  return { 
-    orientation,
-    lockToPortrait,
-    lockToLandscape,
-    unlockOrientation
-  };
-};
 
 const NewNotification = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [features, setFeatures] = useState([]);
-  const [imageViewerVisible, setImageViewerVisible] = useState(false);
-  const [videoModalVisible, setVideoModalVisible] = useState(false);
-  const [selectedMedia, setSelectedMedia] = useState(null);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [videoLoading, setVideoLoading] = useState(true);
-  const [videoPaused, setVideoPaused] = useState(false);
-  const [showControls, setShowControls] = useState(true);
-  const videoRef = useRef(null);
-  const controlsTimeoutRef = useRef(null);
-  const { orientation, lockToPortrait, lockToLandscape, unlockOrientation } = useOrientation();
+  const [filteredFeatures, setFilteredFeatures] = useState([]);
+  const [imageModalVisible, setImageModalVisible] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [input, setInput] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [imageLoadErrors, setImageLoadErrors] = useState({});
+  const [imageLoading, setImageLoading] = useState({});
+  const [visibleItems, setVisibleItems] = useState(new Set());
+  const [retryCount, setRetryCount] = useState({});
 
-  // Prepare images array for ImageViewer component
-  const getImagesForViewer = useCallback(() => {
-    return features
-      .filter(item => item.imgUrl)
-      .map(item => ({
-        url: item.imgUrl,
-        props: { source: item.featureName }
-      }));
-  }, [features]);
+  const searchTimeoutRef = useRef(null);
+  const animation = useRef(new Animated.Value(0)).current;
 
   const getNotification = useCallback(async () => {
     setIsLoading(true);
@@ -97,8 +48,10 @@ const NewNotification = ({ navigation }) => {
 
       if (response.data.features) {
         setFeatures(response.data.features);
+        setFilteredFeatures(response.data.features);
       } else {
         setFeatures([]);
+        setFilteredFeatures([]);
       }
     } catch (error) {
       console.error('Error in fetching notifications:', error);
@@ -109,113 +62,188 @@ const NewNotification = ({ navigation }) => {
 
   useEffect(() => {
     getNotification();
-  }, [getNotification]);
+  }, []);
 
   useEffect(() => {
-    // Enable orientation changes when video modal is open
-    if (videoModalVisible) {
-      unlockOrientation();
-    } else {
-      // Lock to portrait when returning to the main screen
-      lockToPortrait();
-    }
-
     return () => {
-      // Clean up by locking to portrait when component unmounts
-      lockToPortrait();
-    };
-  }, [videoModalVisible, unlockOrientation, lockToPortrait]);
-
-  // Auto-hide controls after a few seconds of inactivity
-  useEffect(() => {
-    if (videoModalVisible && showControls) {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-      
-      controlsTimeoutRef.current = setTimeout(() => {
-        setShowControls(false);
-      }, 3000);
-    }
-
-    return () => {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [videoModalVisible, showControls]);
+  }, []);
 
   const getDirectVideoUrl = useCallback((url) => {
     if (!url) return null;
-    // Handle Google Drive links
     const driveMatch = url.match(/file\/d\/(.*?)\/preview/);
     if (driveMatch) {
       return `https://drive.google.com/uc?export=download&id=${driveMatch[1]}`;
     }
-    // Handle other video URLs
     return url;
   }, []);
 
+  const processImageUrl = useCallback((url) => {
+    if (!url) return null;
+
+    // If it's a Cloudinary URL, add parameters for better compatibility
+    if (url.includes('cloudinary.com')) {
+      // Add format and quality parameters for better device compatibility
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}f_auto,q_auto,fl_progressive,dpr_auto`;
+    }
+
+    return url;
+  }, []);
+
+  const getImageSource = useCallback((url, itemId) => {
+    const processedUrl = processImageUrl(url);
+    const currentRetryCount = retryCount[itemId] || 0;
+
+    // console.log(`Image source for ${itemId}:`, {
+    //   originalUrl: url,
+    //   processedUrl: processedUrl,
+    //   retryCount: currentRetryCount,
+    //   cache: currentRetryCount > 0 ? 'reload' : 'force-cache'
+    // });
+
+    return {
+      uri: processedUrl,
+      cache: currentRetryCount > 0 ? 'reload' : 'force-cache',
+      headers: {
+        'Accept': 'image/webp,image/*,*/*;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (compatible; ReactNative)',
+        'Cache-Control': 'no-cache'
+      }
+    };
+  }, [processImageUrl, retryCount]);
+
   const handleMediaPress = (item, index) => {
     if (item.videoUrl) {
-      setSelectedMedia(getDirectVideoUrl(item.videoUrl));
-      setVideoModalVisible(true);
-      setVideoPaused(false);
-      setVideoLoading(true);
-      setShowControls(true);
+      const videoUrl = getDirectVideoUrl(item.videoUrl);
+      navigation.navigate('VideoPlayerScreen', { videoUri: videoUrl });
     } else if (item.imgUrl) {
-      // Find index of this image in the filtered images array
-      const imageItems = features.filter(feat => feat.imgUrl);
-      const imageIndex = imageItems.findIndex(img => img.id === item.id);
-      setCurrentImageIndex(imageIndex >= 0 ? imageIndex : 0);
-      setImageViewerVisible(true);
+      setSelectedImage(item.imgUrl);
+      setImageModalVisible(true);
     }
   };
 
-  const closeImageViewer = () => {
-    setImageViewerVisible(false);
+  const closeImageModal = () => {
+    setImageModalVisible(false);
+    setSelectedImage(null);
   };
 
-  const closeVideoModal = () => {
-    setVideoModalVisible(false);
-    setSelectedMedia(null);
-    setVideoPaused(true);
-    lockToPortrait();
-  };
+  const toggleSearchBar = useCallback(() => {
+    setIsExpanded((prev) => {
+      const newExpandedState = !prev;
 
-  const onVideoLoad = () => {
-    setVideoLoading(false);
-  };
+      Animated.timing(animation, {
+        toValue: newExpandedState ? 1 : 0,
+        duration: 300,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: false,
+      }).start();
 
-  const onVideoError = (error) => {
-    console.error('Video loading error:', error);
-    setVideoLoading(false);
-  };
-
-  const togglePlayPause = () => {
-    setVideoPaused(!videoPaused);
-    // Show controls when user interacts
-    setShowControls(true);
-  };
-
-  const toggleControls = () => {
-    setShowControls(!showControls);
-    // Reset the timeout when showing controls
-    if (!showControls) {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
+      if (!newExpandedState) {
+        setInput('');
+        setFilteredFeatures(features);
       }
-      
-      controlsTimeoutRef.current = setTimeout(() => {
-        setShowControls(false);
-      }, 1000);
+
+      return newExpandedState;
+    });
+  }, [animation, features]);
+
+  const handleSearch = useCallback((text) => {
+    setInput(text);
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      if (text.trim() === '') {
+        setFilteredFeatures(features);
+        return;
+      }
+
+      const filteredData = features.filter((feature) => {
+        const featureName = feature?.featureName?.toLowerCase() || '';
+        const createdDate = new Date(feature.createdDate).toLocaleDateString().toLowerCase();
+        return featureName.includes(text.toLowerCase()) || createdDate.includes(text.toLowerCase());
+      });
+
+      setFilteredFeatures(filteredData);
+    }, 300);
+  }, [features]);
+
+  const animatedInputWidth = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, responsiveWidth(40)],
+  });
+
+  const animatedBackgroundColor = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#F4FAF4', 'white'],
+  });
+
+  const animatedElevation = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 3],
+  });
+
+  const onViewableItemsChanged = useCallback(({ viewableItems }) => {
+    setVisibleItems(new Set(viewableItems.map(item => item.item.id)));
+  }, []);
+
+  const viewabilityConfig = {
+    itemVisiblePercentThreshold: 50
   };
 
   const renderItem = ({ item, index }) => {
     const hasVideo = !!item?.videoUrl;
     const hasImage = !!item?.imgUrl;
+    // console.log('video : ',hasVideo)
     const formattedDate = new Date(item.createdDate).toLocaleDateString();
+    const isItemVisible = visibleItems.has(item.id);
+
+    const handleImageError = (itemId) => {
+      const currentRetryCount = retryCount[itemId] || 0;
+
+      // console.log(`Image load error for ${itemId}, retry count: ${currentRetryCount}`);
+
+      if (currentRetryCount < 2) {
+        // Retry with different cache settings
+        setRetryCount(prev => ({
+          ...prev,
+          [itemId]: currentRetryCount + 1
+        }));
+
+        // Clear the error state to retry
+        setImageLoadErrors(prev => ({
+          ...prev,
+          [itemId]: false
+        }));
+      } else {
+        // Final failure after retries
+        // console.log(`Final image load failure for ${itemId}`);
+        setImageLoadErrors(prev => ({
+          ...prev,
+          [itemId]: true
+        }));
+      }
+    };
+
+    const handleImageLoadStart = (itemId) => {
+      setImageLoading(prev => ({
+        ...prev,
+        [itemId]: true
+      }));
+    };
+
+    const handleImageLoadEnd = (itemId) => {
+      setImageLoading(prev => ({
+        ...prev,
+        [itemId]: false
+      }));
+    };
 
     return (
       <View style={styles.notification}>
@@ -227,38 +255,58 @@ const NewNotification = ({ navigation }) => {
         >
           {hasVideo ? (
             <View style={styles.videoThumbnailContainer}>
-              <Video
-                source={{ uri: getDirectVideoUrl(item.videoUrl) }}
-                style={styles.media}
-                resizeMode="cover"
-                paused={true}
-                muted={true}
-                posterResizeMode="cover"
-                onLoad={() => { }}
-                onLoadStart={() => { }}
-                onError={() => { }}
-              />
-              <View style={{
-                position: 'absolute',
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}>
-                <Ionicons name="play-circle" size={responsiveFontSize(3.5)} color="gray" />
+              {isItemVisible ? (
+                <Video
+                  source={{ uri: getDirectVideoUrl(item.videoUrl) }}
+                  style={styles.media}
+                  resizeMode="cover"
+                  paused={true}
+                  muted={true}
+                  poster={item.imgUrl}
+                  posterResizeMode="cover"
+                />
+              ) : (
+                <Image
+                  source={{ uri: item.imgUrl }}
+                  style={styles.media}
+                  resizeMode="cover"
+                />
+              )}
+              <View style={styles.playIconContainer}>
+                <Ionicons name="play-circle" size={responsiveFontSize(3.5)} color="white" />
               </View>
             </View>
           ) : hasImage ? (
             <View style={styles.videoThumbnailContainer}>
-              <Image
-                source={{ uri: item.imgUrl }}
-                style={styles.image}
-                resizeMode="cover"
-              />
+              {imageLoading[item.id] && (
+                <View style={styles.imageLoadingContainer}>
+                  <ActivityIndicator size="small" color="#4D8733" />
+                </View>
+              )}
+              {!imageLoadErrors[item.id] ? (
+                <Image
+                  source={getImageSource(item.imgUrl, item.id)}
+                  style={styles.image}
+                  resizeMode="contain"
+                  onError={() => handleImageError(item.id)}
+                  onLoadStart={() => handleImageLoadStart(item.id)}
+                  onLoadEnd={() => handleImageLoadEnd(item.id)}
+                />
+              ) : (
+                <View style={styles.fallbackContainer}>
+                  <Feather name="image" size={responsiveFontSize(3)} color="#ABABAB" />
+                  <Text style={styles.fallbackText}>Image not available</Text>
+                </View>
+              )}
               <View style={styles.playIconOverlay}>
-                <Feather name="maximize" size={responsiveFontSize(2.7)} color="#FFF" />
+                <Feather name="maximize" size={responsiveFontSize(2.7)} color="gray" />
               </View>
             </View>
           ) : (
-            <Text style={styles.noMediaText}>No Media</Text>
+            <View style={styles.noMediaContainer}>
+              <Feather name="image" size={responsiveFontSize(3)} color="#ABABAB" />
+              <Text style={styles.noMediaText}>No Media</Text>
+            </View>
           )}
         </TouchableOpacity>
 
@@ -270,7 +318,23 @@ const NewNotification = ({ navigation }) => {
     );
   };
 
-  const images = getImagesForViewer();
+  const renderEmptyList = () => (
+    <View style={styles.emptyContainer}>
+      {isLoading ? (
+        <UIActivityIndicator color={'#4D8733'} size={responsiveFontSize(4)} />
+      ) : (
+        <>
+          <Feather name="inbox" size={responsiveFontSize(5)} color="#ABABAB" />
+          <Text style={{ fontSize: responsiveFontSize(1.6), fontFamily: 'Poppins-Medium' }}>
+            {input.length > 0
+              ? "No updates match your search criteria"
+              : "No updates available yet"
+            }
+          </Text>
+        </>
+      )}
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -282,154 +346,107 @@ const NewNotification = ({ navigation }) => {
             <Text style={styles.headerTitle}> What's New ✨ </Text>
           </View>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.searchIconContainer}
+
+        <Animated.View
+          style={[
+            styles.searchBarContainer,
+            {
+              backgroundColor: animatedBackgroundColor,
+              elevation: animatedElevation,
+            },
+          ]}
         >
-          <SearchSvg width={responsiveFontSize(2.5)} height={responsiveFontSize(2.5)} />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.searchIconContainer}
+            onPress={toggleSearchBar}
+          >
+            <SearchSvg width={responsiveFontSize(2.5)} height={responsiveFontSize(2.5)} />
+          </TouchableOpacity>
+          <Animated.View style={[styles.animatedInputContainer, { width: animatedInputWidth }]}>
+            <TextInput
+              placeholder="Search"
+              placeholderTextColor="#A9A9A9"
+              style={styles.textInput}
+              value={input}
+              onChangeText={handleSearch}
+              autoFocus={isExpanded}
+              returnKeyType="search"
+            />
+            {input.length > 0 && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={() => handleSearch('')}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Feather name="x-circle" size={responsiveFontSize(2.2)} color="#888" />
+              </TouchableOpacity>
+            )}
+          </Animated.View>
+        </Animated.View>
       </View>
+
       <View style={styles.introTextContainer}>
         <Text style={styles.introText}>
           We are excited to introduce the latest updates to our helpdesk dashboard!
         </Text>
       </View>
+
       <View style={styles.notificationContainer}>
         {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#4CAF50" />
-            <Text style={styles.loadingText}>Loading features...</Text>
+          <View style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}>
+            <UIActivityIndicator color={'#4D8733'} size={responsiveFontSize(4)} />
           </View>
         ) : (
-          <FlashList
-            data={features}
+          <FlatList
+            data={filteredFeatures}
             renderItem={renderItem}
-            estimatedItemSize={200}
             keyExtractor={(item, index) => `feature-${item.id || index}`}
+            ListEmptyComponent={renderEmptyList}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
+            removeClippedSubviews={true}
+            showsVerticalScrollIndicator={false}
+            maxToRenderPerBatch={5}
+            windowSize={5}
+            initialNumToRender={5}
           />
         )}
       </View>
 
-      {/* Image Viewer Modal */}
       <Modal
-        visible={imageViewerVisible}
+        visible={imageModalVisible}
         transparent={true}
-        onRequestClose={closeImageViewer}
-      >
-        <ImageViewer
-          imageUrls={images}
-          index={currentImageIndex}
-          enableSwipeDown={true}
-          saveToLocalByLongPress={false}
-          backgroundColor="rgba(0, 0, 0, 0.9)"
-          loadingRender={() => <ActivityIndicator size="large" color="#ffffff" />}
-          onClick={closeImageViewer}
-        />
-      </Modal>
-
-      {/* Video Player Modal */}
-      <Modal
         animationType="fade"
-        transparent={true}
-        visible={videoModalVisible}
-        onRequestClose={closeVideoModal}
-        supportedOrientations={['portrait', 'landscape']}
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <View style={styles.modalOverlay}>
           <TouchableOpacity
-            style={styles.videoTouchableContainer}
+            style={styles.modalBackground}
             activeOpacity={1}
-            onPress={toggleControls}
           >
-            <View style={styles.videoModalContent}>
-              <View style={styles.videoContainer}>
-                {selectedMedia && (
-                  <>
-                    <Video
-                      ref={videoRef}
-                      source={{ uri: selectedMedia }}
-                      style={styles.fullScreenVideo}
-                      resizeMode="contain"
-                      paused={videoPaused}
-                      onLoad={onVideoLoad}
-                      onError={onVideoError}
-                      onEnd={() => setVideoPaused(true)}
-                      fullscreen={false}
-                      fullscreenOrientation="all"
-                      ignoreSilentSwitch="ignore"
-                      // Remove the built-in controls prop to use our custom controls
-                      controls={false}
-                    />
+            <View style={styles.modalContent}>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={closeImageModal}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={responsiveFontSize(3)} color="white" />
+              </TouchableOpacity>
+              {selectedImage && (
+                <Image
+                  source={getImageSource(selectedImage, 'modal')}
+                  style={styles.modalImage}
+                  resizeMode="contain" />
 
-                    {videoLoading && (
-                      <View style={styles.videoLoadingOverlay}>
-                        <ActivityIndicator size="large" color="#ffffff" />
-                      </View>
-                    )}
+              )
+              }
 
-                    {/* Top controls - only show when showControls is true */}
-                    {showControls && (
-                      <View style={styles.topControlsContainer}>
-                        <TouchableOpacity
-                          style={styles.closeButton}
-                          onPress={closeVideoModal}
-                        >
-                          <Ionicons name="close-circle" size={responsiveFontSize(3.5)} color="#ffffff" />
-                        </TouchableOpacity>
-                      </View>
-                    )}
-
-                    {/* Bottom controls - only show when showControls is true */}
-                    {showControls && (
-                      <View style={styles.bottomControlsContainer}>
-                        <TouchableOpacity
-                          onPress={togglePlayPause}
-                          style={styles.controlButton}
-                        >
-                          <Ionicons 
-                            name={videoPaused ? "play" : "pause"} 
-                            size={responsiveFontSize(3.5)} 
-                            color="#ffffff" 
-                          />
-                        </TouchableOpacity>
-                        
-                        {/* You can add more controls here like a progress bar, time display, etc. */}
-                        <TouchableOpacity
-                          onPress={() => {
-                            if (orientation.includes('LANDSCAPE')) {
-                              lockToPortrait();
-                            } else {
-                              lockToLandscape();
-                            }
-                          }}
-                          style={styles.controlButton}
-                        >
-                          <Ionicons 
-                            name={orientation.includes('LANDSCAPE') ? "phone-portrait" : "phone-landscape"} 
-                            size={responsiveFontSize(3)} 
-                            color="#ffffff" 
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    )}
-
-                    {/* Play/Pause overlay - only show play icon when paused */}
-                    {videoPaused && !showControls && (
-                      <TouchableOpacity
-                        style={styles.videoControlsOverlay}
-                        onPress={togglePlayPause}
-                        activeOpacity={1}
-                      >
-                        <View style={styles.playButtonContainer}>
-                          <Ionicons name="play" size={responsiveFontSize(6)} color="rgba(255, 255, 255, 0.8)" />
-                        </View>
-                      </TouchableOpacity>
-                    )}
-                  </>
-                )}
-              </View>
             </View>
           </TouchableOpacity>
-        </SafeAreaView>
+        </View>
       </Modal>
     </View>
   );
@@ -455,9 +472,35 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     color: '#222327',
   },
+  searchBarContainer: {
+    height: responsiveHeight(5),
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 10,
+    paddingHorizontal: responsiveWidth(2),
+    overflow: 'hidden',
+  },
   searchIconContainer: {
     justifyContent: 'center',
     alignItems: 'center'
+  },
+  animatedInputContainer: {
+    height: '100%',
+    overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  textInput: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    height: '100%',
+    fontSize: responsiveFontSize(1.8),
+    paddingHorizontal: responsiveWidth(2.5),
+    color: '#333',
+  },
+  clearButton: {
+    padding: 5,
   },
   introTextContainer: {
     paddingHorizontal: 25,
@@ -472,7 +515,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     flex: 1,
     marginHorizontal: 15,
-    marginVertical: 15,
+    marginVertical: 25,
     borderRadius: 15,
   },
   notification: {
@@ -489,10 +532,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
   image: {
     width: '100%',
     height: '100%',
+    backgroundColor: '#f0f0f0',
   },
   media: {
     width: '100%',
@@ -504,130 +553,116 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
+    backgroundColor: '#f0f0f0',
+  },
+  playIconContainer: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: responsiveWidth(7),
+    padding: 3,
+  },
+  imageLoadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+  },
+  fallbackContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    width: '100%',
+    height: '100%',
+  },
+  fallbackText: {
+    fontSize: responsiveFontSize(1.3),
+    fontFamily: 'Montserrat-Regular',
+    color: '#666',
+    marginTop: responsiveHeight(1),
   },
   playIconOverlay: {
     position: 'absolute',
-    right: responsiveWidth(1),
-    bottom: responsiveWidth(1),
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    padding: responsiveWidth(0.5),
-    borderRadius: responsiveWidth(1),
+    bottom: 0,
+    right: 0,
+    padding: 3,
+  },
+  noMediaContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000', // iOS shadow
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#f0f0f0',
+    width: '100%',
+    height: '100%',
   },
   noMediaText: {
     fontSize: responsiveFontSize(1.3),
     fontFamily: 'Montserrat-Regular',
     color: '#666',
+    marginTop: responsiveHeight(1),
   },
   textContainer: {
     flex: 1,
     justifyContent: 'center',
   },
   featureText: {
-    fontSize: responsiveFontSize(1.8),
+    fontSize: responsiveFontSize(1.7),
     fontFamily: 'Poppins-Medium',
-    color: '#222327',
+    color: 'Black',
   },
   dateText: {
     fontSize: responsiveFontSize(1.5),
     fontFamily: 'Montserrat-Medium',
     color: '#737C95',
   },
-  modalContainer: {
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: responsiveHeight(40),
+    padding: 20,
+  },
+  modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  videoModalContent: {
+  modalBackground: {
+    flex: 1,
     width: '100%',
     height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
     position: 'relative',
-  },
-  videoTouchableContainer: {
-    width: '100%',
-    height: '100%',
-  },
-  videoContainer: {
-    width: '100%',
-    height: '100%',
-    position: 'relative',
-    backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fullScreenVideo: {
-    width: '100%',
-    height: '100%',
-  },
-  videoLoadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  videoControlsOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-  },
-  playButtonContainer: {
-    width: 80,
-    height: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 40,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  topControlsContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 60,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    // Add a gradient background for better visibility
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-  },
-  bottomControlsContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 60,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    // Add a gradient background for better visibility
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
   closeButton: {
-    padding: 5,
+    position: 'absolute',
+    top: responsiveHeight(5),
+    right: responsiveWidth(5),
+    zIndex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: responsiveWidth(3),
+    padding: responsiveWidth(2),
   },
-  controlButton: {
-    padding: 10,
+  modalImage: {
+    width: responsiveWidth(100),
+    height: responsiveHeight(100),
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: '#4CAF50',
-    fontSize: responsiveFontSize(2),
-    fontFamily: 'Montserrat-Medium',
-    marginTop: 10,
-  }
 });
+
+
+

@@ -86,16 +86,12 @@ const UserPermission = ({ navigation }) => {
                             </View>
                         </TouchableOpacity>
                     </View>
-                    <TouchableOpacity onPress={handleNextPress}>
-                        <View
-                            style={[
+                    <TouchableOpacity style={[
                                 styles.nextBtn,
                                 { opacity: selectedButton ? 1 : 0.5 },
-                            ]}
-                        >
+                            ]} onPress={handleNextPress}>
                             <Text style={styles.nextBtnText}>Next</Text>
                             <ForwardIcon />
-                        </View>
                     </TouchableOpacity>
                 </View>
             </ImageBackground>

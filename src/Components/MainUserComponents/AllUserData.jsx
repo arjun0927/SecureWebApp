@@ -1,34 +1,22 @@
-import {
-	StyleSheet,
-	Text,
-	TextInput,
-	View,
-	TouchableOpacity,
-	KeyboardAvoidingView,
-	Platform,
-	Animated,
-	StatusBar,
-	Dimensions,
-	FlatList,
-} from 'react-native';
-import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import Feather from 'react-native-vector-icons/Feather';
-import AntDesign from 'react-native-vector-icons/AntDesign';
+import { Dimensions, Platform, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View, Animated, TextInput, FlatList } from 'react-native'
+import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react'
+import { useNavigation } from '@react-navigation/native';
+import Feather from 'react-native-vector-icons/Feather'
+import { useGlobalContext } from '../../Context/GlobalContext';
+import AddUsersSvg from '../../assets/Svgs/AddUsersSvg';
 import SearchSvg from '../../assets/Svgs/SearchSvg';
 import DeleteSvg2 from '../../assets/Svgs/DeleteSvg2';
 import DeleteSvg from '../../assets/Svgs/DeleteSvg';
-import AddUsersSvg from '../../assets/Svgs/AddUsersSvg';
-import DeleteModal from './DeleteModal';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons'
-import axios from 'axios';
-import { useGlobalContext } from '../../Context/GlobalContext';
-import { responsiveFontSize, responsiveWidth } from 'react-native-responsive-dimensions';
 import { UIActivityIndicator } from 'react-native-indicators';
-import ImageModal from '../ImageModal';
+import { responsiveFontSize } from 'react-native-responsive-dimensions';
+import AntDesign from 'react-native-vector-icons/AntDesign'
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons'
+import DeleteModal from './DeleteModal';
 import getToken from '../getToken';
-import { FlashList } from "@shopify/flash-list";
+import axios from 'axios';
+import ImageModal from '../ImageModal';
+import { checkBooleanCondition, checkDateCondition, checkNumberCondition, checkStringCondition, convertToNumber } from '../ConditionalFormatting';
 
-// Get screen dimensions for responsive calculations
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Scale factor for responsive font sizing
@@ -37,207 +25,31 @@ const scaleFactor = SCREEN_WIDTH / 375; // Based on standard iPhone width
 // Responsive sizing functions
 const rs = (size) => size * scaleFactor; // Responsive size
 const rf = (size) => Math.round(size * scaleFactor); // Responsive font size
-const regex = /https:\/\/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]{10,})\/view\?usp=drivesdk/;
+
+// Constants for pagination
+const PAGE_SIZE = 20;
 
 
-// Row data component to reduce re-renders
-const DataRow = React.memo(({ field, value, isLast, setVisible, visible, setImageUri, imageUri }) => {
-	if (field === '__ID') return null;
+// Add this custom hook at the top of the file, after imports
+const useDebounce = (value, delay) => {
+	const [debouncedValue, setDebouncedValue] = useState(value);
 
-	return (
-		<View style={[styles.dataRow, isLast && styles.noBorder]}>
-			<Text
-				style={styles.rowLabel}
-				numberOfLines={1}
-				ellipsizeMode="tail"
-			>
-				{field}
-			</Text>
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setDebouncedValue(value);
+		}, delay);
 
-			{
-				regex.test(value) ? (
-					<TouchableOpacity
-						onPress={() => {
-							setVisible(true);
-							setImageUri(value);
-						}}
-						style={{
-							flex: 1,
-							fontSize: rf(14),
-							fontFamily: 'Poppins-Regular',
-						}}
-					>
-						<Text style={{ color: 'blue', textDecorationLine: 'underline' }}>
-							Click here
-						</Text>
-					</TouchableOpacity>
+		return () => {
+			clearTimeout(timer);
+		};
+	}, [value, delay]);
 
-				) : (
-					<Text style={styles.rowValue}
-						numberOfLines={1}
-						ellipsizeMode="tail"
-					>
-						{value}
-					</Text>
-				)
-			}
+	return debouncedValue;
+};
 
-
-		</View>
-	);
-});
-
-// Separate component for action buttons to prevent unnecessary rerenders
-const TableRowActions = React.memo(({
-	index,
-	handleCircleSelect,
-	isSelected,
-	onEdit,
-	onDelete
-}) => {
-	return (
-		<View style={styles.cardHeader}>
-			<View style={styles.leftCardHeader}>
-				<TouchableOpacity
-					onPress={() => handleCircleSelect(index)}
-					hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-				>
-					<View>
-						{isSelected ? (
-							<View style={styles.selectedCircle}>
-								<AntDesign name='checkcircle' size={responsiveFontSize(2)} color={'#4D8733'} />
-							</View>
-						) : (
-							<Feather name='circle' size={responsiveFontSize(2)} color={'black'} />
-						)}
-					</View>
-				</TouchableOpacity>
-			</View>
-			<View style={styles.rightCardHeader}>
-				<TouchableOpacity
-					onPress={onEdit}
-					hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-				>
-					<View style={styles.headerRightIcon}>
-						<MaterialIcons name={'edit'} size={responsiveFontSize(2)} color={'black'} />
-					</View>
-				</TouchableOpacity>
-				<TouchableOpacity
-					onPress={onDelete}
-					hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-				>
-					<View style={styles.headerRightIcon}>
-						<DeleteSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)} />
-					</View>
-				</TouchableOpacity>
-			</View>
-		</View>
-	);
-});
-
-// Separate component for the "View More/Less" button
-const ViewMoreButton = React.memo(({
-	isExpanded,
-	onToggle,
-	show
-}) => {
-	if (!show) return null;
-
-	return (
-		<TouchableOpacity
-			onPress={onToggle}
-			hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-		>
-			<View style={styles.viewMoreContainer}>
-				<Feather
-					name={isExpanded ? 'chevron-up' : 'chevron-down'}
-					color="#4D8733"
-					size={rs(20)}
-					style={{ marginRight: 5 }}
-				/>
-				<Text style={styles.viewMoreContainerText}>
-					{isExpanded ? 'View Less' : 'View More'}
-				</Text>
-			</View>
-		</TouchableOpacity>
-	);
-});
-
-// Optimized TableRow component
-const TableRow = React.memo(({
-	item,
-	index,
-	initialFieldsToShow,
-	expandedIndex,
-	toggleAccordion,
-	fieldData,
-	handleCircleSelect,
-	selectedIndices,
-	handleEdit,
-	handleDeletePress,
-	setVisible,
-	visible,
-	setImageUri,
-	imageUri,
-}) => {
-	// Determine which fields to display
-	const fieldsToDisplay = expandedIndex === index
-		? fieldData
-		: fieldData.slice(0, initialFieldsToShow);
-
-	// Check if there are more fields to show
-	const hasMoreFields = fieldData.length > initialFieldsToShow;
-
-	// Check if the current row is selected
-	const isSelected = selectedIndices.includes(index);
-
-	return (
-		<View style={styles.form}>
-			<TableRowActions
-				index={index}
-				handleCircleSelect={handleCircleSelect}
-				isSelected={isSelected}
-				onEdit={() => handleEdit(item, index)}
-				onDelete={() => handleDeletePress(index)}
-
-			/>
-
-			<View style={styles.headerLine} />
-
-			<View>
-				{fieldsToDisplay.map((field, fieldIndex) => (
-					<DataRow
-						key={field}
-						field={field}
-						value={item[field]}
-						isLast={fieldIndex === fieldsToDisplay.length - 1}
-						setVisible={setVisible}
-						visible={visible}
-						setImageUri={setImageUri}
-						imageUri={imageUri}
-					/>
-				))}
-			</View>
-
-			<ViewMoreButton
-				isExpanded={expandedIndex === index}
-				onToggle={() => toggleAccordion(index)}
-				show={hasMoreFields}
-			/>
-		</View>
-	);
-}, (prevProps, nextProps) => {
-	// Custom comparison function for memoization
-	// Return true if the component should NOT re-render
-	return (
-		prevProps.item === nextProps.item &&
-		prevProps.expandedIndex === nextProps.expandedIndex &&
-		prevProps.selectedIndices.includes(prevProps.index) ===
-		nextProps.selectedIndices.includes(nextProps.index)
-	);
-});
-
-const AllUserData = ({ navigation, route }) => {
+const AllUserData = ({ route }) => {
+	const animation = useRef(new Animated.Value(0)).current;
+	const addButtonOpacity = useRef(new Animated.Value(1)).current;
 	const [selectedIndices, setSelectedIndices] = useState([]);
 	const [modalVisible, setModalVisible] = useState(false);
 	const [expandedIndex, setExpandedIndex] = useState(null);
@@ -251,127 +63,261 @@ const AllUserData = ({ navigation, route }) => {
 	const [imageUri, setImageUri] = useState('');
 	const [visible, setVisible] = useState(false);
 	const [currentPage, setCurrentPage] = useState(1);
+	const [flatlistData, setFlatlistData] = useState([]);
+	const [formattingData, setFormattingData] = useState([]);
 	const [hasMoreData, setHasMoreData] = useState(true);
-	const animation = useRef(new Animated.Value(0)).current;
-	const textOpacity = useRef(new Animated.Value(1)).current;
+	const [tableData, setTableData] = useState([]);
 	const searchInputRef = useRef(null);
-	const flatListRef = useRef(null);
+	const isLoadingRef = useRef(false); // Ref to prevent multiple simultaneous load requests
+	const debouncedSearchTerm = useDebounce(searchTerm, 300); // 300ms delay
 
-	// Number of fields to display initially
-	const initialFieldsToShow = 3;
+	// console.log('route.params : ', route.params)
 
-	const { id, tableAccess, tableName } = route.params;
+
 	const {
 		showToast,
 		getAllTableData,
 		userData,
 		typeInfo,
 		setUserData,
+		globalFieldSettings,
 	} = useGlobalContext();
+	const { id, tableAccess, tableName } = route.params;
 
-	const hasFetchedData = useRef(false);
+	// console.log('table Access : ', tableAccess)
 
-	// Setup fields based on tableAccess
+
+	const tableInfo = globalFieldSettings.filter((item) => item._id === id);
+	const globalPermission = tableInfo[0]?.userFieldSettings || {};
+	const role = tableInfo[0]?.role;
+
+	// console.log('tableInfo : ',tableInfo)
+
+	// console.log('globalPermission : ', globalPermission)
+	// console.log('tableInfo : ', tableInfo)
+	// console.log('typeInfo : ',typeInfo?.deletePermission)
+	// console.log('deletePermission : ',typeInfo?.deletePermission)
+
+	const userPermission = tableInfo[0];
+	const createPermission = userPermission?.createPermission
+	const deletePermission = userPermission?.deletePermission
+	// const editPermission = userPermission?.editPermission
+	const permission = userPermission?.userFieldSettings
+
+	// console.log('deletePermission : ',deletePermission)
+	// console.log('userPermission : ',userPermission?.userFieldSettings)
+
+
 	useEffect(() => {
-		if (tableAccess) {
-			// Filter out __ID from initial view but keep it in the data
-			const fields = Object.keys(tableAccess);
-			setFieldData(fields);
-		}
-	}, [tableAccess]);
+		const data = Object.entries(tableAccess).map(([key, value]) => ({
+			key,
+			value
+		}));
+		setFormattingData(data);
+	}, [])
 
-	// Initial data fetch - use a cleanup function to prevent state updates after unmount
+	// console.log('formattingData : ', formattingData)
+
 	useEffect(() => {
-		let isMounted = true;
-
 		const fetchData = async () => {
-			if (hasFetchedData.current) return;
-
 			try {
 				setLoading(true);
-				await getAllTableData(id);
-				hasFetchedData.current = true;
+				const tableData = await getAllTableData(id);
+				// console.log('tableData : ', tableData?.tableSettingsData
+				// 	?.fields)
+				// console.log('tableData : ', tableData)
+				setTableData(tableData?.tableSettingsData?.fields)
 			} catch (error) {
 				console.error('Error fetching data:', error);
-				if (isMounted) {
-					showToast({
-						type: 'ERROR',
-						message: 'Failed to load data'
-					});
-				}
+				showToast({
+					type: 'ERROR',
+					message: 'Failed to load data'
+				});
 			} finally {
-				if (isMounted) {
-					setLoading(false);
-				}
+				setLoading(false);
 			}
 		};
 
 		fetchData();
+	}, []);
 
-		return () => {
-			isMounted = false;
-		};
-	}, [id, getAllTableData, showToast]);
+	// useEffect(() => {
+	// 	console.log('tableData : ', tableData)
+	// }, [tableData])
 
-	// Load more data function - optimized with proper state handling
-	const loadMoreData = useCallback(async () => {
-		if (!hasMoreData || loadingMore) return;
-
-		try {
-			setLoadingMore(true);
-			// Here you would implement your pagination logic
-			// Simulating a delay for demonstration
-			await new Promise(resolve => setTimeout(resolve, 500));
-
-			// Update the current page
-			setCurrentPage(prevPage => {
-				const newPage = prevPage + 1;
-				// Stop pagination after page 3 (for demo)
-				if (newPage >= 3) {
-					setHasMoreData(false);
-				}
-				return newPage;
-			});
-		} catch (error) {
-			console.error('Error loading more data:', error);
-			showToast({
-				type: 'ERROR',
-				message: 'Failed to load more data'
-			});
-		} finally {
-			setLoadingMore(false);
+	// Load initial data when userData changes
+	useEffect(() => {
+		if (userData.length > 0) {
+			loadInitialData();
 		}
-	}, [hasMoreData, loadingMore, showToast]);
+	}, [userData]);
 
-	// Toggle accordion expansion state - optimized
-	const toggleAccordion = useCallback((index) => {
-		setExpandedIndex(prevIndex => (prevIndex === index ? null : index));
-	}, []);
+	// Load initial batch of data
+	const loadInitialData = () => {
+		// console.log('user Data : ', userData)
+		const initialData = userData.slice(0, PAGE_SIZE);
+		// console.log('initialData : ', initialData)
+		setFlatlistData(initialData);
+		setCurrentPage(1);
+		setHasMoreData(initialData.length < userData.length);
+	};
 
-	// Handle item selection - optimized
-	const handleCircleSelect = useCallback((index) => {
-		setSelectedIndices(prevIndices =>
-			prevIndices.includes(index)
-				? prevIndices.filter(i => i !== index)
-				: [...prevIndices, index]
-		);
-	}, []);
+	// console.log('flatlistData : ', flatlistData)
 
-	// Handle edit - memoized to avoid re-renders
+	// Load more data function for infinite scroll
+	const loadMoreData = useCallback(() => {
+		// Return if already loading or no more data
+		if (isLoadingRef.current || !hasMoreData || loadingMore) return;
+
+		const nextPage = currentPage + 1;
+		const startIndex = currentPage * PAGE_SIZE;
+		const endIndex = nextPage * PAGE_SIZE;
+
+		// If we're at the end of the data
+		if (startIndex >= userData.length) {
+			setHasMoreData(false);
+			return;
+		}
+
+		// Set loading states
+		isLoadingRef.current = true;
+		setLoadingMore(true);
+
+		// Simulate network delay (remove in production)
+		setTimeout(() => {
+			const newData = userData.slice(0, endIndex);
+
+			setFlatlistData(newData);
+			setCurrentPage(nextPage);
+			setHasMoreData(endIndex < userData.length);
+			setLoadingMore(false);
+			isLoadingRef.current = false;
+		}, 500);
+	}, [currentPage, userData, hasMoreData, loadingMore]);
+
+	const toggleSearch = useCallback(() => {
+		if (isSearchVisible) {
+			// Hide search bar
+			Animated.parallel([
+				Animated.timing(animation, {
+					toValue: 0,
+					duration: 300,
+					useNativeDriver: false,
+				}),
+				Animated.timing(addButtonOpacity, {
+					toValue: 1,
+					duration: 300,
+					useNativeDriver: false,
+				}),
+			]).start(() => {
+				setSearchVisible(false);
+				setSearchTerm('');
+			});
+		} else {
+			// Show search bar
+			setSearchVisible(true);
+			Animated.parallel([
+				Animated.timing(animation, {
+					toValue: 1,
+					duration: 300,
+					useNativeDriver: false,
+				}),
+				Animated.timing(addButtonOpacity, {
+					toValue: 0,
+					duration: 150,
+					useNativeDriver: false,
+				}),
+			]).start(() => {
+				// Focus search input after animation completes
+				if (searchInputRef.current) {
+					searchInputRef.current.focus();
+				}
+			});
+		}
+	}, [isSearchVisible, animation, addButtonOpacity]);
+
+	// Focus search input when it becomes visible
+	useEffect(() => {
+		if (isSearchVisible && searchInputRef.current) {
+			searchInputRef.current.focus();
+		}
+	}, [isSearchVisible]);
+
 	const handleEdit = useCallback((item, index) => {
 		navigation.navigate('MainEditUser', {
-			fieldData: fieldData,
 			id: id,
+			tableAccess: tableAccess,
 			__ID: item.__ID,
 			userItem: item,
-			typeInfo: typeInfo,
-			screenInfo: {
-				screen: 'AllUserData',
-			}
+			// typeInfo: typeInfo,
+			// screenInfo: {
+			// 	screen: 'AllUserData',
+			// }
 		});
 	}, [navigation, fieldData, id, typeInfo]);
 
-	// Handle delete operation - optimized
+
+	// Filter data based on search term
+	const filteredData = useMemo(() => {
+		if (!debouncedSearchTerm.trim()) return flatlistData;
+
+		return flatlistData.filter(item => {
+			if (!item) return false;
+
+			return Object.entries(item).some(([key, value]) => {
+				if (key === '__ID') return false;
+				if (value == null) return false;
+
+				return String(value).toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+			});
+		});
+	}, [flatlistData, debouncedSearchTerm]);
+
+	const ListEmptyComponent = React.useCallback(() => (
+		<View style={styles.emptyContainer}>
+			<Feather name="database" size={rs(50)} color="#CCC" />
+			<Text style={styles.emptyText}>No data found</Text>
+		</View>
+	), []);
+
+	// Footer with loading indicator - memoized
+	const renderFooter = React.useCallback(() => {
+		if (!loadingMore) return null;
+
+		return (
+			<View style={styles.footerLoader}>
+				<UIActivityIndicator color={'#4D8733'} size={rs(20)} />
+			</View>
+		);
+	}, [loadingMore]);
+
+	// Calculate search width based on animation value
+	// const finalWidth = role === 'USER' && typeInfo?.deletePermission
+	// 	? SCREEN_WIDTH - rs(83)
+	// 	: SCREEN_WIDTH - rs(130);
+
+	const searchWidth = animation.interpolate({
+		inputRange: [0, 1],
+		outputRange: [0, SCREEN_WIDTH - rs(130)],
+	});
+
+
+	const navigation = useNavigation();
+
+
+	const onToggle = (index) => {
+		setExpandedIndex(expandedIndex === index ? null : index);
+	}
+
+	const onCircleSelect = (index) => {
+		setSelectedIndices(
+			prevIndex => prevIndex.includes(index) ? prevIndex.filter(i => i !== index) : [
+				...prevIndex, index
+			]
+		)
+	}
+
+
 	const handleDelete = useCallback(async () => {
 		try {
 			let idsToDelete = [];
@@ -407,7 +353,6 @@ const AllUserData = ({ navigation, route }) => {
 						message: 'Data deleted successfully'
 					});
 
-
 					const newData = [...userData];
 					const newDataFiltered = newData.filter((_, idx) => !indicesToDelete.includes(idx));
 					setUserData(newDataFiltered);
@@ -428,289 +373,464 @@ const AllUserData = ({ navigation, route }) => {
 		}
 	}, [selectedIndices, selectedIndex, userData, id, showToast, setUserData]);
 
-	const toggleSearch = useCallback(() => {
-		if (isSearchVisible) {
-			Animated.parallel([
-				Animated.timing(animation, {
-					toValue: 0,
-					duration: 300,
-					useNativeDriver: false,
-				}),
-				Animated.timing(textOpacity, {
-					toValue: 1,
-					duration: 300,
-					useNativeDriver: false,
-				}),
-			]).start(() => {
-				setSearchVisible(false);
-				setSearchTerm('');
-			});
-		} else {
-			setSearchVisible(true);
-			Animated.parallel([
-				Animated.timing(animation, {
-					toValue: 1,
-					duration: 300,
-					useNativeDriver: false,
-				}),
-				Animated.timing(textOpacity, {
-					toValue: 0,
-					duration: 150,
-					useNativeDriver: false,
-				}),
-			]).start(() => {
-				searchInputRef.current?.focus();
-			});
-		}
-	}, [isSearchVisible, animation, textOpacity]);
-
-	// Optimize search width calculation
-	const searchWidth = animation.interpolate({
-		inputRange: [0, 1],
-		outputRange: [0, SCREEN_WIDTH * 0.65],
-	});
-
-	const searchHeight = animation.interpolate({
-		inputRange: [0, 1],
-		outputRange: [0, rs(40)],
-	});
-
-	// Filter data based on search term - optimized for performance
-	const filteredData = useMemo(() => {
-		if (!searchTerm.trim()) return userData;
-
-		return userData.filter(item => {
-			// Quick early return optimization
-			if (!item) return false;
-			return Object.entries(item).some(([key, value]) => {
-				// Skip filtering on __ID field
-				if (key === '__ID') return false;
-
-				// Handle null/undefined values
-				if (value == null) return false;
-
-				// Convert value to string and check if it includes search term
-				return String(value).toLowerCase().includes(searchTerm.toLowerCase());
-			});
-		});
-	}, [userData, searchTerm]);
-
-	// useEffect(()=>{
-	// 	console.log('filteredData', filteredData)
-	// },[filteredData])
-
-	const newFilteredData = filteredData.slice(0, 10);
-
-	// console.log('newFilteredData', newFilteredData)
-
-	// Handle individual row delete button press - optimized
 	const handleDeletePress = useCallback((index) => {
 		setSelectedIndex(index);
 		setModalVisible(true);
 	}, []);
 
-	// Optimize FlatList rendering with constant item heights
-	const getItemLayout = useCallback((_, index) => ({
-		length: rs(200),
-		offset: rs(200) * index,
-		index,
-	}), []);
 
-	// Extract ID for key with fallback - optimized
-	const keyExtractor = useCallback((item) =>
-		(item.__ID?.toString() || String(Math.random())),
-		[]);
-
-	// Render item - fully memoized
-	const renderItem = useCallback(({ item, index }) => (
-		<TableRow
-			item={item}
-			index={index}
-			initialFieldsToShow={initialFieldsToShow}
-			expandedIndex={expandedIndex}
-			toggleAccordion={toggleAccordion}
-			fieldData={fieldData}
-			handleCircleSelect={handleCircleSelect}
-			selectedIndices={selectedIndices}
-			handleEdit={handleEdit}
-			handleDeletePress={handleDeletePress}
-			setVisible={setVisible}
-			visible={visible}
-			setImageUri={setImageUri}
-			imageUri={imageUri}
-
-		/>
-	), [
-		expandedIndex,
-		toggleAccordion,
-		fieldData,
-		initialFieldsToShow,
-		handleCircleSelect,
-		selectedIndices,
-		handleEdit,
-		handleDeletePress
-	]);
-
-	// Empty list component - memoized
-	const ListEmptyComponent = useCallback(() => (
-		<View style={styles.emptyContainer}>
-			<Feather name="database" size={rs(50)} color="#CCC" />
-			<Text style={styles.emptyText}>No data found</Text>
-		</View>
-	), []);
-
-	// Footer with loading indicator - memoized
-	const renderFooter = useCallback(() => {
-		if (!loadingMore) return null;
+	const renderItem = ({ item, index }) => {
+		const isExpanded = expandedIndex === index;
+		// Filter out __ID key and then slice
+		const filteredKeys = tableData.filter(key => key !== '__ID');
+		// console.log('filteredKeys : ', filteredKeys)
+		const keysToShow = isExpanded ? filteredKeys : filteredKeys.slice(0, 2);
+		const deleteSelected = selectedIndices.includes(index);
+		// console.log('item : ', item)
 
 		return (
-			<View style={styles.footerLoader}>
-				<UIActivityIndicator color={'#4D8733'} size={rs(20)} />
-			</View>
-		);
-	}, [loadingMore]);
-
-	// Handle end reached to load more data - optimized
-	const handleEndReached = useCallback(() => {
-		if (hasMoreData && !loadingMore && !isSearchVisible && searchTerm === '') {
-			loadMoreData();
-		}
-	}, [hasMoreData, loadingMore, loadMoreData, isSearchVisible, searchTerm]);
-
-	return (
-		<KeyboardAvoidingView
-			style={{ flex: 1 }}
-			behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-			keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-		>
-			<StatusBar barStyle="dark-content" backgroundColor="#F4FAF4" />
-			<View style={styles.container}>
-				{/* Header */}
-				<View style={styles.header}>
-					<Text style={styles.usersText}>Table</Text>
-					<TouchableOpacity
-						style={styles.backButton}
-						onPress={() => navigation.goBack()}
-						hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-					>
-						<Feather name="chevron-left" size={rs(22)} color="black" />
-						<Text style={styles.headerTitle}>{tableName}</Text>
-					</TouchableOpacity>
-				</View>
-
-				{/* Actions Bar */}
-				<View style={styles.actionsBar}>
-					<View style={styles.leftActions}>
+			<View style={styles.form}>
+				<View style={styles.cardHeader}>
+					<View style={styles.leftCardHeader}>
 						<TouchableOpacity
-							style={styles.svgContainer}
-							onPress={toggleSearch}
-							hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+							onPress={() => onCircleSelect(index)}
+							hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
 						>
-							<SearchSvg width={rs(20)} height={rs(20)} />
-						</TouchableOpacity>
+							<View>
+								<>
+									{role === 'ADMIN' && (
+										deleteSelected ? (
+											<View style={styles.selectedCircle}>
+												<AntDesign name='checkcircle' size={responsiveFontSize(2)} color={'#4D8733'} />
+											</View>
+										) : (
+											<View
+												style={{
+													width: rs(30),
+													height: rs(30),
+													justifyContent: 'center',
+													alignItems: 'center',
+												}}
+											>
+												<Feather name='circle' size={responsiveFontSize(2)} color={'black'} />
+											</View>
+										)
+									)}
+									{
+										role === 'USER' && deletePermission && (
+											deleteSelected ? (
+												<View style={styles.selectedCircle}>
+													<AntDesign name='checkcircle' size={responsiveFontSize(2)} color={'#4D8733'} />
+												</View>
+											) : (
+												<View
+													style={{
+														width: rs(30),
+														height: rs(30),
+														justifyContent: 'center',
+														alignItems: 'center',
+													}}
+												>
+													<Feather name='circle' size={responsiveFontSize(2)} color={'black'} />
+												</View>
+											)
+										)
+									}
+								</>
 
-						<Animated.View style={[
-							styles.searchContainer,
-							{ height: searchHeight, width: searchWidth }
-						]}>
-							{isSearchVisible && (
-								<TextInput
-									ref={searchInputRef}
-									style={styles.searchInput}
-									placeholder="Search..."
-									placeholderTextColor="#888"
-									value={searchTerm}
-									onChangeText={setSearchTerm}
-								/>
-							)}
-						</Animated.View>
-					</View>
-
-					<View style={styles.rightActions}>
-						<TouchableOpacity
-							onPress={() => setModalVisible(true)}
-							disabled={selectedIndices.length === 0}
-						>
-							<View style={[
-								styles.svgContainer,
-								{ opacity: selectedIndices.length > 0 ? 1 : 0.5 }
-							]}>
-								<DeleteSvg2 strokeColor={'#4D8733'} fillColor={'#4D8733'} width={rs(22)} height={rs(22)} />
 							</View>
 						</TouchableOpacity>
+					</View>
+					<View style={styles.rightCardHeader}>
+						<TouchableOpacity
+							hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+							onPress={() => handleEdit(item, index)}
+						>
+							<View style={styles.headerRightIcon}>
+								<MaterialIcons name={'edit'} size={responsiveFontSize(2)} color={'black'} />
+							</View>
+						</TouchableOpacity>
+						<>
+							{
+								role === 'ADMIN' && (
+									<TouchableOpacity
+										hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+										onPress={() => handleDeletePress(index)}
+									>
+										<View style={styles.headerRightIcon}>
+											<DeleteSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)} />
+										</View>
+									</TouchableOpacity>
+								)
+							}
+							{
+								role === 'USER' && deletePermission && (
 
-						<Animated.View style={{ opacity: textOpacity }}>
-							<TouchableOpacity
-								onPress={() => navigation.navigate('UserAddNewData', {
-									fieldData: fieldData,
-									id: id,
-									typeInfo: typeInfo
-								})}
-								hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-							>
-								<View style={styles.addUserContainer}>
-									<AddUsersSvg width={rs(20)} height={rs(20)} />
-									<Text style={styles.addUserContainerText}>Add New Data</Text>
-								</View>
-							</TouchableOpacity>
-						</Animated.View>
+									<TouchableOpacity
+										hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+										onPress={() => handleDeletePress(index)}
+									>
+										<View style={styles.headerRightIcon}>
+											<DeleteSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)} />
+										</View>
+									</TouchableOpacity>
+								)
+
+							}
+						</>
 					</View>
 				</View>
+				<View style={styles.headerLine} />
+				<View style={{ flex: 1 }}>
+					{keysToShow.map((key, i, arr) => {
+						const isLastIndex = i === (arr.length - 1);
+						if (key === '__ID') return null;
 
-				{/* Content Area */}
-				{loading ? (
-					<View style={styles.loaderContainer}>
+						const isImageUrl = /\.(jpeg|jpg|gif|png|svg)$/i.test(item[key]);
+						const isDriveUrl = /https:\/\/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]{10,})\/view\?usp=drivesdk/.test(item[key]);
+
+						// Find formatting data for this key
+						const fieldData = formattingData.find(formatItem => formatItem.key === key);
+						const newKeys = item?.key;
+						const permission = globalPermission[`${key}`]
+						const viewAccess = permission?.viewAccess
+						// console.log('viewAccess : ',viewAccess)
+						const conditionalFormatting = fieldData?.value?.conditionalFormatting;
+
+						let cellStyle = {};
+						let textStyle = {};
+
+						// Apply conditional formatting if it exists
+						if (conditionalFormatting && Array.isArray(conditionalFormatting)) {
+							conditionalFormatting.forEach((formatRule) => {
+								const { scope, dataType, condition, value: expectedValue, actions } = formatRule;
+								let checkValue = item[key];
+								let conditionMet = false;
+
+								// console.log('checkValue : ',checkValue)
+								// console.log('condition : ',condition)
+								// console.log('expectedValue : ',expectedValue)
+
+
+								// Check condition based on data type
+								switch (dataType?.toLowerCase()) {
+									case 'number':
+
+										conditionMet = checkNumberCondition(
+											convertToNumber(checkValue),
+											condition,
+											convertToNumber(expectedValue)
+										);
+										break;
+
+									case 'text':
+										conditionMet = checkStringCondition(
+											(checkValue || "").toString().toLowerCase(),
+											condition,
+											(expectedValue || "").toString().toLowerCase()
+										);
+										break;
+
+									case 'boolean':
+
+										conditionMet = checkBooleanCondition(checkValue, condition);
+										break;
+
+									case 'date':
+										conditionMet = checkDateCondition(
+											checkValue,
+											condition,
+											expectedValue
+										);
+										// console.log('conditionMet : ',conditionMet)
+										break;
+
+									default:
+										conditionMet = checkStringCondition(
+											(checkValue || "").toString().toLowerCase(),
+											condition,
+											(expectedValue || "").toString().toLowerCase()
+										);
+										break;
+								}
+
+
+
+								// Apply styles if condition is met
+								if (conditionMet && scope === "CELL") {
+									if (actions.backgroundColor) {
+										cellStyle.backgroundColor = actions.backgroundColor;
+									}
+									if (actions.bold) textStyle.fontWeight = "bold";
+									if (actions.italic) textStyle.fontStyle = "italic";
+									if (actions.underline) textStyle.textDecorationLine = "underline";
+									if (actions.textColor) textStyle.color = actions.textColor;
+								}
+							});
+						}
+
+						const uniqueKey = `${item.__ID}-${key}-${i}-${index}`;
+
+						// console.log('item key : ',item[key])
+						// console.log('key : ',key)
+						// console.log('per',permission)
+						// console.log('permission : ',permission?.fieldName[key])
+						let view;
+						if (permission?.fieldName === key) {
+							view = permission?.viewAccess
+						}
+
+						// console.log('role : ',role)
+
+						return (
+							<>
+								{role === 'ADMIN' && (
+									<View key={uniqueKey} style={[styles.dataRow, isLastIndex && styles.noBorder]}>
+										<Text style={styles.rowLabel} ellipsizeMode="tail" numberOfLines={1}>
+											{key}
+										</Text>
+
+										{isImageUrl || isDriveUrl ? (
+											<TouchableOpacity
+												onPress={() => {
+													setVisible(true);
+													setImageUri(item[key]);
+												}}
+												style={{ flex: 1 }}
+											>
+												<Text style={{ color: 'blue', textDecorationLine: 'underline' }}>Click Here</Text>
+											</TouchableOpacity>
+										) : (
+											<View style={[{ flex: 1, paddingTop: 2 }, cellStyle]}>
+												<Text
+													style={[styles.rowValue, textStyle]}
+													numberOfLines={1}
+													ellipsizeMode="tail"
+												>
+													{item[key]}
+												</Text>
+											</View>
+										)}
+									</View>
+								)}
+
+								{role === 'USER' && view && (
+									<View key={uniqueKey} style={[styles.dataRow, isLastIndex && styles.noBorder]}>
+										<Text style={styles.rowLabel} ellipsizeMode="tail" numberOfLines={1}>
+											{key}
+										</Text>
+
+										{isImageUrl || isDriveUrl ? (
+											<TouchableOpacity
+												onPress={() => {
+													setVisible(true);
+													setImageUri(item[key]);
+												}}
+												style={{ flex: 1 }}
+											>
+												<Text style={{ color: 'blue', textDecorationLine: 'underline' }}>Click Here</Text>
+											</TouchableOpacity>
+										) : (
+											<View style={[{ flex: 1, paddingTop: 2 }, cellStyle]}>
+												<Text
+													style={[styles.rowValue, textStyle]}
+													numberOfLines={1}
+													ellipsizeMode="tail"
+												>
+													{item[key]}
+												</Text>
+											</View>
+										)}
+									</View>
+								)}
+							</>
+						);
+
+					})}
+
+					{Object.keys(item).length > 3 && (
+						<TouchableOpacity
+							onPress={() => onToggle(index)}
+							hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+						>
+							<View style={styles.viewMoreContainer}>
+								<Feather
+									name={isExpanded ? 'chevron-up' : 'chevron-down'}
+									color="#4D8733"
+									size={rs(20)}
+									style={{ marginRight: 5 }}
+								/>
+								<Text style={styles.viewMoreContainerText}>
+									{isExpanded ? 'View Less' : 'View More'}
+								</Text>
+							</View>
+						</TouchableOpacity>
+					)}
+				</View>
+			</View>
+		);
+	};
+
+
+	// console.log('userData : ', filteredData)
+
+
+	return (
+		<SafeAreaView style={styles.container}>
+			<StatusBar backgroundColor={'#F4FAF4'} barStyle={'dark-content'} />
+			<View style={styles.header}>
+				<Text style={styles.usersText}>Table</Text>
+				<TouchableOpacity
+					style={styles.backButton}
+					onPress={() => navigation.goBack()}
+					hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+				>
+					<Feather name="chevron-left" size={rs(22)} color="black" />
+					<Text style={styles.headerTitle}>{tableName}</Text>
+				</TouchableOpacity>
+			</View>
+
+			{/* Actions bar with fixed height */}
+			<View style={styles.actionsBar}>
+				<View style={{ flexDirection: 'row', }}>
+					<TouchableOpacity
+						style={styles.iconButton}
+						onPress={toggleSearch}
+						hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+						activeOpacity={0.7}
+					>
+						<SearchSvg width={rs(20)} height={rs(20)} />
+					</TouchableOpacity>
+
+					<Animated.View style={[styles.searchContainer, { width: searchWidth }]}>
+						{isSearchVisible && (
+							<TextInput
+								ref={searchInputRef}
+								style={styles.searchInput}
+								placeholder="Search..."
+								placeholderTextColor="#888"
+								value={searchTerm}
+								onChangeText={setSearchTerm}
+								numberOfLines={1}
+								ellipsizeMode="tail"
+							/>
+						)}
+					</Animated.View>
+				</View>
+
+				<View style={{ flexDirection: 'row', }}>
+					<>
+						{
+							role === 'ADMIN' && (
+								<TouchableOpacity
+									onPress={() => setModalVisible(true)}
+									style={[
+										styles.iconButton,
+										{ opacity: selectedIndices.length > 0 ? 1 : 0.5 }
+									]}
+									disabled={selectedIndices.length === 0}
+									activeOpacity={0.9}
+								>
+									<DeleteSvg2
+										strokeColor={'#4D8733'}
+										fillColor={'#4D8733'}
+										width={rs(22)}
+										height={rs(22)}
+									/>
+								</TouchableOpacity>
+							)
+						}
+						{
+							role === 'USER' && deletePermission && (
+								<TouchableOpacity
+									onPress={() => setModalVisible(true)}
+									style={[
+										styles.iconButton,
+										{ opacity: selectedIndices.length > 0 ? 1 : 0.5 }
+									]}
+									disabled={selectedIndices.length === 0}
+									activeOpacity={0.9}
+								>
+									<DeleteSvg2
+										strokeColor={'#4D8733'}
+										fillColor={'#4D8733'}
+										width={rs(22)}
+										height={rs(22)}
+									/>
+								</TouchableOpacity>
+							)
+						}
+					</>
+
+
+					<>
+						{
+							role === 'ADMIN' && (
+								<Animated.View style={{ opacity: addButtonOpacity }}>
+									<TouchableOpacity
+										hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+										style={styles.addButton}
+										activeOpacity={0.7}
+										onPress={() => navigation.navigate('UserAddNewData', {
+											tableAccess,
+											id,
+											typeInfo
+										})}
+									>
+										<AddUsersSvg width={rs(20)} height={rs(20)} />
+										<Text style={styles.addButtonText}>Add New Data</Text>
+									</TouchableOpacity>
+								</Animated.View>
+							)
+						}
+						{
+							role === 'USER' && createPermission && (
+								<Animated.View style={{ opacity: addButtonOpacity }}>
+									<TouchableOpacity
+										hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+										style={styles.addButton}
+										activeOpacity={0.7}
+										onPress={() => navigation.navigate('UserAddNewData', {
+											tableAccess,
+											id,
+											typeInfo
+										})}
+									>
+										<AddUsersSvg width={rs(20)} height={rs(20)} />
+										<Text style={styles.addButtonText}>Add New Data</Text>
+									</TouchableOpacity>
+								</Animated.View>
+							)
+						}
+
+					</>
+
+				</View>
+			</View>
+
+			{
+				loading ? (
+					<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
 						<UIActivityIndicator color={'#4D8733'} />
 					</View>
 				) : (
-					<View style={styles.listContainer}>
-						{/* <FlatList
-							ref={flatListRef}
-							data={filteredData}
-							renderItem={renderItem}
-							keyExtractor={keyExtractor}
-							getItemLayout={getItemLayout}
-							removeClippedSubviews={true}
-							maxToRenderPerBatch={10}
-							windowSize={5}
-							initialNumToRender={5}
-							updateCellsBatchingPeriod={50}
-							ListEmptyComponent={ListEmptyComponent}
-							ListFooterComponent={renderFooter}
-							onEndReached={handleEndReached}
-							onEndReachedThreshold={0.5}
-							contentContainerStyle={
-								filteredData.length === 0 ? { flex: 1 } : { paddingBottom: rs(20) }
-							}
-							showsVerticalScrollIndicator={false}
-						/> */}
-						<FlashList
-							data={newFilteredData}
-							renderItem={renderItem}
-							keyExtractor={keyExtractor}
-							getItemLayout={getItemLayout}
-							estimatedItemSize={120}
-							renderFooter={renderFooter}
-							ListEmptyComponent={ListEmptyComponent}
-						// removeClippedSubviews={true}
-						// maxToRenderPerBatch={10}
-						// windowSize={5}
-						// initialNumToRender={5}
-						// updateCellsBatchingPeriod={50}
-						// ListEmptyComponent={ListEmptyComponent}
-						// ListFooterComponent={renderFooter}
-						// onEndReached={handleEndReached}
-						// onEndReachedThreshold={0.5}
-						// contentContainerStyle={
-						// 	filteredData.length === 0 ? { flex: 1 } : { paddingBottom: rs(20) }
-						// }
-						// showsVerticalScrollIndicator={false}
-						/>
-					</View>
-				)}
-
-				{/* Delete Modal */}
-				{modalVisible && (
+					<FlatList
+						data={filteredData}
+						renderItem={renderItem}
+						keyExtractor={(item, index) => item?.__ID?.toString() || index.toString()}
+						ListEmptyComponent={ListEmptyComponent}
+						ListFooterComponent={renderFooter}
+						onEndReached={loadMoreData}
+						onEndReachedThreshold={0.5}
+						contentContainerStyle={{
+							paddingBottom: rs(5)
+						}}
+						showsVerticalScrollIndicator={false}
+					/>
+				)
+			}
+			{
+				modalVisible && (
 					<DeleteModal
 						modalVisible={modalVisible}
 						deleteLoader={deleteTableLoader}
@@ -722,20 +842,19 @@ const AllUserData = ({ navigation, route }) => {
 						}}
 						selectedIndices={selectedIndices}
 					/>
-				)}
-				{
-					visible && (
-						<ImageModal
-							visible={visible}
-							imageUri={imageUri}
-							setImageUri={setImageUri}
-							onClose={() => setVisible(false)}
-						/>
-					)
-				}
-
-			</View>
-		</KeyboardAvoidingView>
+				)
+			}
+			{
+				visible && (
+					<ImageModal
+						visible={visible}
+						imageUri={imageUri}
+						setImageUri={setImageUri}
+						onClose={() => setVisible(false)}
+					/>
+				)
+			}
+		</SafeAreaView>
 	);
 };
 
@@ -745,17 +864,6 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: '#F4FAF4',
-		// paddingTop: 10,
-	},
-	loaderContainer: {
-		flex: 1,
-		justifyContent: 'center',
-		alignItems: 'center',
-		backgroundColor: '#FFF',
-	},
-	listContainer: {
-		flex: 1,
-		marginBottom: rs(20)
 	},
 	header: {
 		flexDirection: 'row',
@@ -780,39 +888,31 @@ const styles = StyleSheet.create({
 		fontFamily: 'Poppins-Medium',
 		marginLeft: rs(2),
 	},
+
 	actionsBar: {
 		flexDirection: 'row',
-		justifyContent: 'space-between',
-		alignItems: 'center',
-		marginVertical: rs(5),
-		marginHorizontal: rs(15),
-	},
-	leftActions: {
-		flexDirection: 'row',
-		alignItems: 'center',
-	},
-	rightActions: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: responsiveWidth(2),
-	},
-	searchContainer: {
-		overflow: 'hidden',
-		marginHorizontal: rs(10),
-	},
-	searchInput: {
-		flex: 1,
-		backgroundColor: '#FFF',
-		fontSize: rf(14),
-		fontFamily: 'Poppins-Regular',
-		borderRadius: rs(10),
 		paddingHorizontal: rs(15),
-		borderColor: '#DDD',
-		borderWidth: 1,
+		height: rs(50),
+		gap: rs(10),
 	},
-	svgContainer: {
-		width: responsiveWidth(10),
-		height: responsiveWidth(10),
+
+	leftSection: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		flex: 1, // Take available space
+	},
+
+	// Right side of actions bar
+	rightSection: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'flex-end',
+	},
+
+	// Icons with consistent styling
+	iconButton: {
+		width: rs(40),
+		height: rs(40),
 		borderRadius: rs(8),
 		backgroundColor: '#FFF',
 		elevation: 3,
@@ -824,23 +924,49 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		borderWidth: 0.6,
 		borderColor: '#EBE7F3',
+		marginRight: rs(10),
 	},
-	addUserContainer: {
-		flexDirection: 'row',
-		gap: rs(5),
+
+	// Search container with fixed height
+	searchContainer: {
+		height: rs(40),
 		justifyContent: 'center',
+		overflow: 'hidden', // Prevents content from showing during animation
+	},
+
+	// Search input with appropriate text styling
+	searchInput: {
+		height: '100%',
+		width: '100%',
+		backgroundColor: '#FFF',
+		fontSize: rf(14),
+		fontFamily: 'Poppins-Regular',
+		borderRadius: rs(8),
+		paddingHorizontal: rs(15),
+		borderColor: '#DDD',
+		borderWidth: 1,
+		includeFontPadding: false, // Helps with text vertical alignment
+		textAlignVertical: 'center', // Center text vertically
+	},
+
+	addButton: {
+		flexDirection: 'row',
 		alignItems: 'center',
+		justifyContent: 'center',
 		paddingHorizontal: rs(10),
 		paddingVertical: rs(8),
 		backgroundColor: '#FFF',
 		borderColor: '#4D8733',
 		borderWidth: 1,
 		borderRadius: rs(10),
+		height: rs(40),
 	},
-	addUserContainerText: {
+
+	addButtonText: {
 		fontSize: rf(14),
 		color: 'black',
 		fontFamily: 'Poppins-Medium',
+		marginLeft: rs(5),
 	},
 	form: {
 		backgroundColor: '#FFF',
@@ -922,7 +1048,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: rs(20),
 		justifyContent: 'center',
 		alignItems: 'center',
-		marginTop: rs(10),
+		marginTop: rs(5),
 	},
 	viewMoreContainerText: {
 		color: '#4D8733',

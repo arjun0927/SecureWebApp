@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, FlatList, View } from 'react-native';
-import { responsiveFontSize } from 'react-native-responsive-dimensions';
+import { responsiveFontSize, responsiveHeight, responsiveWidth } from 'react-native-responsive-dimensions';
 import DeleteSvg from '../assets/Svgs/DeleteSvg';
 import DownArrowSvg from '../assets/Svgs/DownArrowSvg';
 import TopArrowSvg from '../assets/Svgs/TopArrowSvg';
@@ -13,9 +13,10 @@ import DeleteModal from './MainUserComponents/DeleteModal';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useGlobalContext } from '../Context/GlobalContext';
+import getToken from './getToken';
 
 
-const CardContent = ({ data , onlineUser}) => {
+const CardContent = ({ data, onlineUser, isConnected }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [duplicateUserModal, setDuplicateUserModal] = useState(false)
   const [modalVisible, setModalVisible] = useState(false);
@@ -23,11 +24,7 @@ const CardContent = ({ data , onlineUser}) => {
   const [duplicateUser, setDuplicateUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isBlocked, setIsBlocked] = useState(data?.blockUser);
-  const { showToast , getUsers } = useGlobalContext();
-
-  // console.log('onlineUser',onlineUser)
-  
-  // console.log('blockInfo',data?.blockUser)
+  const { showToast , users , setUsers , onlineUsers } = useGlobalContext();
 
   const handleDelete = () => {
     setDuplicateUserModal(false);
@@ -47,7 +44,6 @@ const CardContent = ({ data , onlineUser}) => {
       const parsedData = JSON.parse(loginInfo);
       const token = parsedData?.token;
       const deleteUserId = data?._id;
-      // console.log('deleteUserId',deleteUserId)
       const response = await axios.delete(
         ` https://secure.ceoitbox.com/api/users/${deleteUserId}`,
         {
@@ -57,9 +53,9 @@ const CardContent = ({ data , onlineUser}) => {
         }
       );
 
-      // console.log('deleteApi response',response.data)
-      if (response.data) {
-        await getUsers();
+      if (response?.data) {
+        const updatedUsers = users.filter(user => user._id !== deleteUserId);
+        setUsers(updatedUsers);
         setDeleteLoader(false);
 
         showToast({
@@ -68,8 +64,6 @@ const CardContent = ({ data , onlineUser}) => {
         });
         return response.data;
       }
-
-      // console.log('deleteApi response',data._id)
     } catch (error) {
       console.error('Error fetching data:', error);
     }
@@ -88,10 +82,7 @@ const CardContent = ({ data , onlineUser}) => {
   const handleBlockUser = async () => {
     try {
       setLoading(true);
-      const login = await AsyncStorage.getItem('loginInfo');
-      const parsedData = JSON.parse(login); 
-      const token = parsedData?.token;
-      // console.log('blockApi token',token)
+      const token = await getToken();
       const response = await axios.put(
         `https://secure.ceoitbox.com/api/users/${data._id}`,
         { blockUser: !isBlocked },
@@ -103,7 +94,10 @@ const CardContent = ({ data , onlineUser}) => {
       );
 
       if (response.data) {
-        setIsBlocked(!isBlocked); // Update state
+        const updatedUsers = users.map(user => user._id === data._id ? response.data : user);
+        setUsers(updatedUsers);
+        const currentStatus = response?.data?.blockUser;
+        setIsBlocked(currentStatus);
         showToast({
           type: 'SUCCESS',
           message: isBlocked ? 'User Unblocked Successfully' : 'User Blocked Successfully',
@@ -120,6 +114,11 @@ const CardContent = ({ data , onlineUser}) => {
     }
   };
 
+  const getOnlineStatus = () => {
+    if (!isConnected) return false; // Socket is not connected
+    return !!onlineUser; // User is online if found in onlineUsers array
+  };
+
   return (
     <View>
       <TouchableOpacity onPress={toggleOpen}>
@@ -127,9 +126,9 @@ const CardContent = ({ data , onlineUser}) => {
           <View style={styles.headerLeft}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
               <Text style={styles.title}>{data.userName}</Text>
-              <View style={{ marginTop: 2 }}>
-                {onlineUser ? <OnlineIndicator /> : <View />}
-              </View>
+              {/* <View style={{ marginTop: 2 }}>
+                {getOnlineStatus() ? <OnlineIndicator /> : <View />}
+              </View> */}
             </View>
             <Text style={styles.email}>{data.email}</Text>
           </View>
@@ -138,10 +137,10 @@ const CardContent = ({ data , onlineUser}) => {
               style={styles.iconButton}
               onPress={() => setModalVisible(true)}
             >
-              <DeleteSvg />
+              <DeleteSvg width={responsiveFontSize(2.2)} height={responsiveFontSize(2.2)} />
             </TouchableOpacity>
             <TouchableOpacity onPress={toggleOpen} style={styles.toggleButton}>
-              {isOpen ? <DownArrowSvg /> : <TopArrowSvg />}
+              {isOpen ? <DownArrowSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)} /> : <TopArrowSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)} />}
             </TouchableOpacity>
           </View>
         </View>
@@ -151,30 +150,30 @@ const CardContent = ({ data , onlineUser}) => {
         <View>
           <View style={styles.headerOpen}></View>
           <View style={styles.dataRow}>
-            <Text style={styles.rowLabel}>Table Access</Text>
+            <Text style={styles.rowLabel} ellipsizeMode='tail' numberOfLines={1}>Table Access</Text>
             <FlatList
               data={data.tablesAccess}
               keyExtractor={(item, index) => index.toString()}
               renderItem={({ item }) => (
-                <Text style={styles.rowValue}>{item.tableName}</Text>
+                <Text style={styles.rowValue} ellipsizeMode='tail' numberOfLines={1}>{item.tableName}</Text>
               )}
             />
           </View>
 
           <View style={[styles.dataRow]}>
             <Text style={styles.rowLabel}>Password</Text>
-            <Text style={styles.rowValue}>{data.password}</Text>
+            <Text style={styles.rowValue} ellipsizeMode='tail' numberOfLines={1}>{data.password}</Text>
           </View>
           <View style={styles.lastRow}>
             <View style={{ flexDirection: 'row', gap: 20 }}>
               <TouchableOpacity onPress={() => duplicateUserFuntion(data)}>
                 <View style={styles.iconButton}>
-                  <CopySvg />
+                  <CopySvg width={responsiveFontSize(1.6)} height={responsiveFontSize(1.6)} />
                 </View>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => navigation.navigate('EditUser', { editData: newData })}>
                 <View style={styles.iconButton}>
-                  <EditSvg />
+                  <EditSvg width={responsiveFontSize(1.6)} height={responsiveFontSize(1.6)} />
                 </View>
               </TouchableOpacity>
             </View>
@@ -223,7 +222,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
   },
   headerOpen: {
-    marginTop: 10,
+    marginTop: responsiveHeight(1.5),
     marginBottom: 5,
     borderBottomWidth: 1,
     borderColor: '#BDC3D4',
@@ -235,72 +234,74 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: responsiveWidth(5),
   },
   title: {
-    fontFamily: 'Poppins-Regular',
-    fontSize: 18,
+    fontFamily: 'Montserrat-Medium',
+    fontSize: responsiveFontSize(1.9),
     color: 'black',
-    lineHeight: 32,
   },
   email: {
-    fontFamily: 'Poppins-Regular',
-    fontSize: 14,
+    fontFamily: 'Montserrat-Medium',
+    fontSize: responsiveFontSize(1.4),
     color: '#578356',
   },
   iconButton: {
     backgroundColor: '#EEF5ED',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
+    width: responsiveWidth(7),
+    height: responsiveWidth(7),
+    borderRadius: responsiveWidth(3.5),
     justifyContent: 'center',
     alignItems: 'center',
   },
   toggleButton: {
-    width: 35,
-    height: 39,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: responsiveWidth(1),
   },
   dataRow: {
     flexDirection: 'row',
-    paddingVertical: 10,
-    paddingHorizontal: 5,
+    paddingVertical: responsiveHeight(0.7),
+    paddingHorizontal: responsiveWidth(1),
     borderBottomWidth: 1,
     borderBottomColor: '#EEEFF6',
   },
   rowLabel: {
     width: '50%',
     color: '#222327',
-    fontSize: responsiveFontSize(1.7),
-    fontFamily: 'Poppins',
-    fontWeight: '400',
+    fontSize: responsiveFontSize(1.6),
+    fontFamily: 'Poppins-Regular',
   },
   rowValue: {
     flex: 1,
     color: '#578356',
     fontSize: responsiveFontSize(1.5),
-    fontFamily: 'Poppins',
-    fontWeight: '400',
+    fontFamily: 'Poppins-Regular',
   },
   blockBtn: {
     borderWidth: 1,
     borderColor: '#B8EAB4',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 30,
+    paddingHorizontal: responsiveWidth(5),
+    paddingVertical: 6,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
   blockBtnText: {
-    fontSize: responsiveFontSize(1.8),
+    fontSize: responsiveFontSize(1.6),
     color: '#587555',
-    fontWeight: '600',
+    fontFamily: 'Montserrat-SemiBold',
   },
   lastRow: {
     marginTop: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  statusIndicator: {
+    width: responsiveWidth(1.5),
+    height: responsiveHeight(0.3),
+    borderRadius: responsiveWidth(0.75),
+    marginLeft: responsiveWidth(1),
   },
 });

@@ -7,7 +7,7 @@ const Header = () => {
 	return (
 		<View>
 			<View style={styles.header}>
-				<HeaderSvg width={responsiveFontSize(2.5)} height={responsiveFontSize(2.5)} />
+				<HeaderSvg width={responsiveFontSize(4)} height={responsiveFontSize(4)} />
 			</View>
 			<View style={styles.textContainer}>
 				<Text style={styles.text1}>WELCOME TO</Text>

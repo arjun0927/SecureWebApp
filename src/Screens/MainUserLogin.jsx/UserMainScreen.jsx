@@ -55,7 +55,6 @@ const UserMainScreen = ({ navigation }) => {
 								borderRadius: responsiveWidth(4),
 								elevation: 1,
 								backgroundColor: '#FFF',
-								elevation: 4,
 							}
 						]}>
 							<ThreeDotsSvg width={responsiveFontSize(2.5)} height={responsiveFontSize(2.5)} />

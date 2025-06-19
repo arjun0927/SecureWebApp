@@ -1,41 +1,64 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
+  Alert,
   Image,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
   BackHandler,
-  KeyboardAvoidingView,
-  Platform,
   SafeAreaView,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import ThreeDotsSvg from '../../assets/Svgs/ThreeDotsSvg';
 import { responsiveFontSize, responsiveHeight, responsiveWidth } from 'react-native-responsive-dimensions';
 import TableIcon from '../../assets/Svgs/TableIcon';
 import TableData from './TableData';
 import UserThreeDotsModal from '../../Components/MainUserComponents/UserThreeDotsModal';
 import AnimatedTableSearchBar from '../../Components/MainUserComponents/AnimatedTableSearchBar';
+import { useFocusEffect } from '@react-navigation/native';
 
 const TableScreen = ({ navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
+  
 
-  useEffect(() => {
-    const backAction = () => {
-      if (navigation.isFocused()) {
-        // Allow back action to exit only if on the Home screen
-        BackHandler.exitApp();
-        return true;
-      } else {
-        navigation.goBack();
-        return true;
-      }
-    };
+  // useEffect(() => {
+  //   const backAction = () => {
+  //     BackHandler.exitApp();
+  //     return true;
+  //   };
 
-    const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+  //   const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+  //   return () => backHandler.remove();
+  // }, []);
 
-    return () => backHandler.remove();
-  }, []);
+   useFocusEffect(
+     useCallback(() => {
+       const onBackPress = async () => {
+         try {
+           const loginInfo = await AsyncStorage.getItem('loginInfo');
+           const { token } = loginInfo ? JSON.parse(loginInfo) : {};
+           
+           if (token) {
+             BackHandler.exitApp();
+             return true; // Prevent default back action
+           } else {
+             return false; // Allow default back action (e.g., go to login)
+           }
+         } catch (error) {
+           console.error('Error reading token:', error);
+           return false;
+         }
+       };
+
+       BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+       return () => {
+         BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+       };
+     }, [])
+   );
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -72,27 +95,25 @@ const TableScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {/* Main Container with KeyboardAvoidingView */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 10}
-        style={styles.keyboardAvoidingContainer}>
+      
         <View style={styles.mainContainer}>
           <View style={styles.mainContainerTop}>
-            <TableIcon fillColor="#4D8733" strokeColor="white" width={responsiveFontSize(2.1)} height={responsiveFontSize(2.1)} />
+            <TableIcon fillColor="#4D8733" strokeColor="white" width={responsiveFontSize(2.5)}
+								height={responsiveFontSize(2.5)} />
             <Text style={styles.tableHeadingText}>List of Tables</Text>
           </View>
           <TableData />
+          
         </View>
         {
-				modalVisible && (
-					<UserThreeDotsModal
-						visible={modalVisible}
-						onClose={() => setModalVisible(false)}
-					/>
-				)
-			}
-      </KeyboardAvoidingView>
+            modalVisible && (
+              <UserThreeDotsModal
+                visible={modalVisible}
+                onClose={() => setModalVisible(false)}
+              />
+            )
+          }
+
     </SafeAreaView>
   );
 };
@@ -154,11 +175,13 @@ const styles = StyleSheet.create({
     gap: 5,
     alignItems: 'center',
     justifyContent: 'flex-start',
-    padding: 20,
+    paddingHorizontal:20,
+    paddingTop:15
   },
   tableHeadingText: {
     color: 'black',
-    fontSize: responsiveFontSize(2.4),
-    fontWeight: '500',
+		fontSize: responsiveFontSize(2.2),
+		fontFamily: 'Poppins-Medium',
+		marginTop:3,
   },
 });

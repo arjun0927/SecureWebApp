@@ -87,7 +87,7 @@ const Onboard = () => {
         {/* Fixed Header with SafeAreaView consideration */}
         <View style={styles.headerContainer}>
           <View style={styles.header}>
-            <HeaderSvg width={responsiveFontSize(2.5)} height={responsiveFontSize(2.5)} />
+            <HeaderSvg width={responsiveFontSize(4.5)} height={responsiveFontSize(4.5)} />
             <View>
               <Text style={styles.headerText}>Secure</Text>
               <Text style={styles.headerText}>WebApp</Text>
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     width: '100%',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    // alignItems: 'center',
     paddingTop: Platform.OS === 'ios' ? responsiveHeight(2) : responsiveHeight(1.5),
     paddingBottom: responsiveHeight(1),
     paddingHorizontal: responsiveWidth(5),
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   skipText: {
     color: '#000',
     fontFamily: 'Poppins-Medium',
-    fontSize: responsiveFontSize(2.1),
+    fontSize: responsiveFontSize(2.2),
   },
   sliderContainer: {
     flex: 1,

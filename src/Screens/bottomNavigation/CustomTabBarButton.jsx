@@ -37,7 +37,7 @@ export default CustomTabBarButton;
 
 const styles = StyleSheet.create({
   btn: {
-    height: responsiveHeight(5), 
+    height: responsiveHeight(6), 
     borderWidth: 1,
     borderColor: '#E5E5E5',
     marginHorizontal: 10,

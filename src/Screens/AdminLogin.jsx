@@ -110,7 +110,6 @@ const AdminLogin = ({ navigation }) => {
                     </View>
 
                 </TouchableOpacity>
-                <View style={styles.horizontalLine}></View>
             </View>
         </ImageBackground>
     );

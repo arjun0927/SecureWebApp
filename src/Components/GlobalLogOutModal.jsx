@@ -131,26 +131,27 @@ const styles = StyleSheet.create({
 		borderColor: '#767A8D',
 		borderRadius: 10,
 		paddingHorizontal: 10,
-		paddingVertical: 7,
+		height: responsiveHeight(4.49),
 		justifyContent: 'center',
 		alignItems: 'center',
 	},
 	btnContainer1Text: {
 		color: '#767A8D',
-		textAlign: 'center',
-		fontSize: 16,
+		fontSize: responsiveFontSize(1.8),
+		fontFamily: 'Poppins-Medium',
 	},
 	btnContainer2: {
 		width: responsiveWidth(30),
 		borderRadius: 10,
 		paddingHorizontal: 10,
-		paddingVertical: 7,
+		height: responsiveHeight(4.5),
 		justifyContent: 'center',
 		alignItems: 'center',
 		backgroundColor: '#4D8733',
 	},
 	btnContainer2Text: {
 		color: 'white',
-		fontSize: 17,
+		fontFamily: 'Poppins-Medium',
+		fontSize: responsiveFontSize(1.8),
 	}
 });
