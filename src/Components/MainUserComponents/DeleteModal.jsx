@@ -4,7 +4,7 @@ import { ActivityIndicator, Text } from 'react-native-paper';
 import { responsiveFontSize, responsiveWidth } from 'react-native-responsive-dimensions';
 import NoDataSvg2 from '../../assets/Svgs/NoDataSvg2';
 
-const DeleteModal = ({ modalVisible, setModalVisible, handleDelete, handleCancel , deleteLoader }) => {
+const DeleteModal = ({ modalVisible, setModalVisible, handleDelete, handleCancel , deleteLoader, contentType }) => {
 
   const hideModal = () => setModalVisible(false);
 
@@ -29,7 +29,7 @@ const DeleteModal = ({ modalVisible, setModalVisible, handleDelete, handleCancel
               </Text>
             </View>
             <View style={styles.modalMidTextContainer}>
-              <Text style={styles.modalMidText}>Are you sure you want to delete this table?</Text>
+              <Text style={styles.modalMidText}>Are you sure you want to delete this {contentType}?</Text>
             </View>
             <View style={styles.btnContainer}>
               <TouchableOpacity onPress={handleCancel}>

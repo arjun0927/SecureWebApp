@@ -25,6 +25,7 @@ import UserRaiseTicket from './Components/MainUserComponents/UserRaiseTicket';
 import UserThreeDotsModal from './Components/MainUserComponents/UserThreeDotsModal';
 import NewNotification from './Components/NewNotification';
 import VideoPlayerScreen from './Components/VideoPlayerScreen';
+import CameraVision from './Components/CameraVision';
 
 
 const Stack = createNativeStackNavigator();
@@ -57,6 +58,7 @@ const AppNavigator = () => {
 				<Stack.Screen name='UserRaiseTicket' component={UserRaiseTicket} options={{ headerShown: false, animation: animationType }} />
 				<Stack.Screen name='UserThreeDotsModal' component={UserThreeDotsModal} options={{ headerShown: false, animation: animationType }} />
 				<Stack.Screen name='VideoPlayerScreen' component={VideoPlayerScreen} options={{ headerShown: false, animation: animationType }} />
+				<Stack.Screen name='CameraVision' component={CameraVision} options={{ headerShown: false, animation: animationType }} />
 			</Stack.Navigator>
 		</NavigationContainer>
 	)

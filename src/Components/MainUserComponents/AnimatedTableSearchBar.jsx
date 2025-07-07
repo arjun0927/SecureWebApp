@@ -27,7 +27,6 @@ const AnimatedTableSearchBar = () => {
   const [originalData, setOriginalData] = useState([]);
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
-  // Determine if we're on a small screen
   const isSmallScreen = windowWidth < 375;
   const isMediumScreen = windowWidth >= 375 && windowWidth < 768;
   const isLargeScreen = windowWidth >= 768;
@@ -149,14 +148,14 @@ const AnimatedTableSearchBar = () => {
     outputRange: ['#E0FFD3', '#FFF'],
   });
 
-  const animatedElevation = animation.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, Platform.OS === 'ios' ? 3 : 2],
-  });
-
   const animatedIconOpacity = animation.interpolate({
     inputRange: [0, 0.3, 1],
     outputRange: [1, 0.7, 1],
+  });
+
+  const animatedContainerWidth = animation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [searchIconSize + responsiveWidth(4), getSearchWidth() + responsiveWidth(8)],
   });
 
   const searchIconSize = getSearchIconSize();
@@ -171,10 +170,12 @@ const AnimatedTableSearchBar = () => {
           height: isSmallScreen ? responsiveHeight(5.2) :
             isMediumScreen ? responsiveHeight(5.5) :
               responsiveHeight(5),
-          borderRadius: isSmallScreen ? responsiveWidth(1.5) : responsiveWidth(2), 
+          borderRadius: isSmallScreen ? responsiveWidth(1.5) : responsiveWidth(2),
           paddingVertical: isSmallScreen ? responsiveHeight(0.5) :
             isMediumScreen ? responsiveHeight(0.6) :
               responsiveHeight(0.5),
+          // Animated width
+          width: animatedContainerWidth,
         },
       ]}
     >
@@ -224,24 +225,25 @@ const AnimatedTableSearchBar = () => {
         />
       </Animated.View>
 
-      {isExpanded && (
-        <TouchableOpacity
-          onPress={() => {
-            setInput('');
-            setData(originalData);
-          }}
-          style={styles.clearButton}
-          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-        >
-          {input.length > 0 && (
+      {/* Fixed position clear button */}
+      <View style={styles.clearButtonContainer}>
+        {isExpanded && input.length > 0 && (
+          <TouchableOpacity
+            onPress={() => {
+              setInput('');
+              setData(originalData);
+            }}
+            style={styles.clearButton}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          >
             <View style={styles.clearIconContainer}>
               <View style={styles.clearIcon}>
                 <AntDesign name='close' size={responsiveFontSize(2.2)} color={'#888'} />
               </View>
             </View>
-          )}
-        </TouchableOpacity>
-      )}
+          </TouchableOpacity>
+        )}
+      </View>
     </Animated.View>
   );
 };
@@ -266,7 +268,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     overflow: 'hidden',
     maxWidth: '100%',
-   
+    position: 'relative',
   },
   textInput: {
     flex: 1,
@@ -286,37 +288,28 @@ const styles = StyleSheet.create({
     height: '100%',
     overflow: 'hidden',
   },
+  clearButtonContainer: {
+    position: 'absolute',
+    right: responsiveWidth(2),
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   clearButton: {
     justifyContent: 'center',
     alignItems: 'center',
     padding: responsiveWidth(1),
   },
   clearIconContainer: {
-    width: responsiveFontSize(1.8),
-    height: responsiveFontSize(1.8),
     justifyContent: 'center',
     alignItems: 'center',
   },
   clearIcon: {
     width: '100%',
     height: '100%',
-    marginRight: 10,
+    marginRight: 5,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
-  },
-  clearIconLine1: {
-    position: 'absolute',
-    width: '100%',
-    height: 1.5,
-    backgroundColor: '#888',
-    transform: [{ rotate: '45deg' }],
-  },
-  clearIconLine2: {
-    position: 'absolute',
-    width: '100%',
-    height: 1.5,
-    backgroundColor: '#888',
-    transform: [{ rotate: '-45deg' }],
   },
 });

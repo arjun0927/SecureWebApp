@@ -330,52 +330,35 @@ const UserAddNewData = ({ route }) => {
 	}, [errors, tableAccess]);
 
 	// Update the selectImageFromGallery function to handle both camera and gallery
-	const selectImageFromGallery = useCallback(async (field) => {
-		try {
-			// Show action sheet to choose between camera and gallery
-			Alert.alert(
-				"Select Media",
-				"Choose media source",
-				[
-					{
-						text: "Camera",
-						onPress: async () => {
-							const response = await launchCamera({
-								mediaType: 'mixed',
-								quality: 0.5,
-								includeBase64: false,
-								saveToPhotos: true,
-							});
-
-							handleMediaResponse(response, field);
-						}
-					},
-					{
-						text: "Gallery",
-						onPress: async () => {
-							const response = await launchImageLibrary({
-								mediaType: 'mixed',
-								quality: 0.5,
-								selectionLimit: 1,
-							});
-
-							handleMediaResponse(response, field);
-						}
-					},
-					{
-						text: "Cancel",
-						style: "cancel"
+	const selectImageFromGallery = useCallback((field) => {
+		Alert.alert(
+			"Select Media",
+			"Choose media source",
+			[
+				{
+					text: "Camera",
+					onPress: () => {
+						navigation.navigate('CameraVision', { field });
 					}
-				]
-			);
-		} catch (error) {
-			console.error('Error selecting media:', error);
-			showToast({
-				type: 'ERROR',
-				message: 'Failed to select media',
-			});
-		}
-	}, [showToast]);
+				},
+				{
+					text: "Gallery",
+					onPress: async () => {
+						const response = await launchImageLibrary({
+							mediaType: 'mixed',
+							quality: 0.5,
+							selectionLimit: 1,
+						});
+						handleMediaResponse(response, field);
+					}
+				},
+				{
+					text: "Cancel",
+					style: "cancel"
+				}
+			]
+		);
+	}, [navigation, handleMediaResponse]);
 
 	// Add a helper function to handle media response
 	const handleMediaResponse = useCallback((response, field) => {

@@ -16,6 +16,7 @@ import getToken from '../getToken';
 import axios from 'axios';
 import ImageModal from '../ImageModal';
 import { checkBooleanCondition, checkDateCondition, checkNumberCondition, checkStringCondition, convertToNumber } from '../ConditionalFormatting';
+import { useCameraDevice , useCameraPermission } from 'react-native-vision-camera';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -286,7 +287,7 @@ const AllUserData = ({ route }) => {
 
 		return (
 			<View style={styles.footerLoader}>
-				<UIActivityIndicator color={'#4D8733'} size={rs(20)} />
+				<UIActivityIndicator color={'#4D8733'} />
 			</View>
 		);
 	}, [loadingMore]);
@@ -586,7 +587,7 @@ const AllUserData = ({ route }) => {
 							<>
 								{role === 'ADMIN' && (
 									<View key={uniqueKey} style={[styles.dataRow, isLastIndex && styles.noBorder]}>
-										<Text style={styles.rowLabel} ellipsizeMode="tail" numberOfLines={1}>
+										<Text style={styles.rowLabel} >
 											{key}
 										</Text>
 
@@ -604,8 +605,6 @@ const AllUserData = ({ route }) => {
 											<View style={[{ flex: 1, paddingTop: 2 }, cellStyle]}>
 												<Text
 													style={[styles.rowValue, textStyle]}
-													numberOfLines={1}
-													ellipsizeMode="tail"
 												>
 													{item[key]}
 												</Text>
@@ -841,6 +840,7 @@ const AllUserData = ({ route }) => {
 							setSelectedIndex(null);
 						}}
 						selectedIndices={selectedIndices}
+						contentType={'data'}
 					/>
 				)
 			}
@@ -1024,7 +1024,7 @@ const styles = StyleSheet.create({
 	dataRow: {
 		flexDirection: 'row',
 		paddingVertical: rs(10),
-		paddingHorizontal: rs(5),
+		paddingHorizontal: rs(10),
 		borderBottomWidth: 1,
 		borderBottomColor: '#EEEFF6',
 	},

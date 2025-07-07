@@ -62,40 +62,42 @@ const UserTableCard = ({ data, tableAccess, item }) => {
 
   return (
     <View>
-      <TouchableOpacity onPress={() => navigation.navigate('AllUserData', { id: data?._id, tableAccess: tableAccess, tableName: data?.tableName, item: item })}>
-        <View style={[styles.header]}>
+
+      <View style={[styles.header]}>
+        <TouchableOpacity onPress={() => navigation.navigate('AllUserData', { id: data?._id, tableAccess: tableAccess, tableName: data?.tableName, item: item })}>
           <View style={styles.headerLeft}>
             <Text style={styles.title}>{data?.tableName}</Text>
           </View>
-          <View style={styles.headerRight}>
-            <>
-              {
-                role === 'ADMIN' && (
-                  <TouchableOpacity
-                    style={styles.iconButton}
-                    onPress={() => setModalVisible(true)}
-                  >
-                    <DeleteSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)} />
-                  </TouchableOpacity>
-                )
-              }
-              {
-                role === 'USER' && tableInfo[0]?.deletePermission && (
-                  <TouchableOpacity
-                    style={styles.iconButton}
-                    onPress={() => setModalVisible(true)}
-                  >
-                    <DeleteSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)} />
-                  </TouchableOpacity>
-                )
-              }
-            </>
-            <TouchableOpacity onPress={toggleOpen} style={styles.toggleButton}>
-              {isOpen ? <DownArrowSvg width={responsiveFontSize(1.6)} height={responsiveFontSize(1.6)} /> : <TopArrowSvg width={responsiveFontSize(1.6)} height={responsiveFontSize(1.6)} />}
-            </TouchableOpacity>
-          </View>
+
+        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <>
+            {
+              role === 'ADMIN' && (
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={() => setModalVisible(true)}
+                >
+                  <DeleteSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)} />
+                </TouchableOpacity>
+              )
+            }
+            {
+              role === 'USER' && tableInfo[0]?.deletePermission && (
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={() => setModalVisible(true)}
+                >
+                  <DeleteSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)} />
+                </TouchableOpacity>
+              )
+            }
+          </>
+          <TouchableOpacity onPress={toggleOpen} style={styles.toggleButton}>
+            {isOpen ? <DownArrowSvg width={responsiveFontSize(1.6)} height={responsiveFontSize(1.6)} /> : <TopArrowSvg width={responsiveFontSize(1.6)} height={responsiveFontSize(1.6)} />}
+          </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
 
       {isOpen && (
         <View>
@@ -118,6 +120,7 @@ const UserTableCard = ({ data, tableAccess, item }) => {
           handleCancel={() => setModalVisible(false)}
           setDeleteTableLoader={setDeleteTableLoader}
           deleteTableLoader={deleteTableLoader}
+          contentType={'table'}
         />
       )}
     </View>

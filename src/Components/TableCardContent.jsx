@@ -65,7 +65,6 @@ const TableCardContent = ({ item, tableAccess }) => {
 
   return (
     <View style={{ flex: 1 }}>
-      <TouchableOpacity onPress={toggleOpen}>
         <View style={[styles.header]}>
           <View style={styles.headerLeft}>
             <TouchableOpacity onPress={() => navigation.navigate('AllUserData', { id: item?._id, tableAccess: tableAccess, tableName: item?.tableName, item: item })}>
@@ -100,7 +99,6 @@ const TableCardContent = ({ item, tableAccess }) => {
             </TouchableOpacity>
           </View>
         </View>
-      </TouchableOpacity>
 
 
       {isOpen && (
@@ -123,6 +121,7 @@ const TableCardContent = ({ item, tableAccess }) => {
           handleDelete={() => deleteSingleTable()}
           handleCancel={() => setModalVisible(false)}
           deleteLoader={tableLoader}
+          contentType={'table'}
         />
       )}
     </View>

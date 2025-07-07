@@ -36,6 +36,8 @@ const CardContent = ({ data, onlineUser, isConnected }) => {
 
   const navigation = useNavigation();
 
+  // console.log('isConnected : ',isConnected)
+
 
   const deleteUser = async () => {
     try {
@@ -204,6 +206,7 @@ const CardContent = ({ data, onlineUser, isConnected }) => {
           setModalVisible={setModalVisible}
           handleDelete={() => deleteUser()}
           handleCancel={() => setModalVisible(false)}
+          contentType={'user'}
         />
       )}
     </View>

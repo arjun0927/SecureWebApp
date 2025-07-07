@@ -189,6 +189,11 @@ const AnimatedUsersSearchBar = () => {
 		outputRange: [1, 0.7, 1],
 	});
 
+	const animatedContainerWidth = animation.interpolate({
+		inputRange: [0, 1],
+		outputRange: [searchIconSize + responsiveWidth(4), getSearchWidth() + responsiveWidth(8)],
+	});
+
 	const searchIconSize = getSearchIconSize();
 
 	return (
@@ -204,6 +209,8 @@ const AnimatedUsersSearchBar = () => {
 					paddingVertical: isSmallScreen ? responsiveHeight(0.5) :
 						isMediumScreen ? responsiveHeight(0.6) :
 							responsiveHeight(0.5),
+					// Animated width
+					width: animatedContainerWidth,
 				},
 			]}
 		>
@@ -253,21 +260,22 @@ const AnimatedUsersSearchBar = () => {
 				/>
 			</Animated.View>
 
-			{isExpanded && (
-				<TouchableOpacity
-					onPress={handleClear}
-					style={styles.clearButton}
-					hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-				>
-					{input.length > 0 && (
+			{/* Fixed position clear button */}
+			<View style={styles.clearButtonContainer}>
+				{isExpanded && input.length > 0 && (
+					<TouchableOpacity
+						onPress={handleClear}
+						style={styles.clearButton}
+						hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+					>
 						<View style={styles.clearIconContainer}>
 							<View style={styles.clearIcon}>
 								<AntDesign name='close' size={responsiveFontSize(2.2)} color={'#888'} />
 							</View>
 						</View>
-					)}
-				</TouchableOpacity>
-			)}
+					</TouchableOpacity>
+				)}
+			</View>
 		</Animated.View>
 	);
 };
@@ -281,6 +289,7 @@ const styles = StyleSheet.create({
 		justifyContent: 'flex-start',
 		overflow: 'hidden',
 		maxWidth: '100%',
+		position: 'relative',
 	},
 	textInput: {
 		flex: 1,
@@ -300,21 +309,26 @@ const styles = StyleSheet.create({
 		height: '100%',
 		overflow: 'hidden',
 	},
+	clearButtonContainer: {
+		position: 'absolute',
+		right: responsiveWidth(2),
+		height: '100%',
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
 	clearButton: {
 		justifyContent: 'center',
 		alignItems: 'center',
 		padding: responsiveWidth(1),
 	},
 	clearIconContainer: {
-		width: responsiveFontSize(1.8),
-		height: responsiveFontSize(1.8),
 		justifyContent: 'center',
 		alignItems: 'center',
 	},
 	clearIcon: {
 		width: '100%',
 		height: '100%',
-		marginRight: 10,
+		marginRight: 5,
 		justifyContent: 'center',
 		alignItems: 'center',
 		position: 'relative',

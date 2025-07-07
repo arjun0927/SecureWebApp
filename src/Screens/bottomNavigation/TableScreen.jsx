@@ -8,6 +8,7 @@ import {
   View,
   BackHandler,
   SafeAreaView,
+  StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ThreeDotsSvg from '../../assets/Svgs/ThreeDotsSvg';
@@ -131,13 +132,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: responsiveWidth(4),
     gap: 15,
+    width:'100%',
+    // backgroundColor:'red'
   },
   leftHeader: {
-    flexDirection: 'row', // Left header with logo and text
+    flexDirection: 'row',
     gap: responsiveWidth(2),
-    alignItems: 'center', // Aligning the content vertically in the center
+    alignItems: 'center', 
+    width:'40%',
+    // backgroundColor:'red'
   },
   text1: {
     fontSize: responsiveFontSize(2),
@@ -153,7 +158,7 @@ const styles = StyleSheet.create({
   iconContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 15,
+    gap: responsiveWidth(3),
   },
   iconContainerCircle: {
     shadowColor: '#000',

@@ -107,10 +107,10 @@ const EditUser = ({ route }) => {
 	const handleTableSelect = (table) => {
 		if (selectedTables.some(t => t._id === table._id)) {
 			setSelectedTables((prev) => prev.filter((t) => t._id !== table._id));
-			setIsAccordionOpen(false);
+			// setIsAccordionOpen(false);
 		} else {
 			setSelectedTables((prev) => [...prev, table]);
-			setIsAccordionOpen(false);
+			// setIsAccordionOpen(false);
 		}
 	};
 
@@ -152,7 +152,7 @@ const EditUser = ({ route }) => {
 			const sendData = {
 				allowEveryIP: true,
 				allowEveryTime: true,
-				askOTP: true,
+				askOTP: false,
 				blockUser: false,
 				createdBy: userId,
 				email,
