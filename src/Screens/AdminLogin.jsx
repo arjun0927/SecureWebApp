@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, Image, ImageBackground } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View, Image, ImageBackground, Platform } from 'react-native';
 import HeaderSvg from '../assets/Svgs/HeaderSvg';
 import {
     responsiveFontSize,
@@ -11,18 +11,49 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useGlobalContext } from '../Context/GlobalContext';
 import { ActivityIndicator } from 'react-native-paper';
 import Header from '../Components/Header';
+import AdminLoginErrorModal from '../Components/AdminLoginErrorModal';
 
 const AdminLogin = ({ navigation }) => {
 
     const [isLoading, setIsLoading] = useState(false)
+    const [errorModal, setErrorModal] = useState(false)
+    const [errorModalText, setErrorModalText] = useState('')
 
     const { showToast } = useGlobalContext()
 
     GoogleSignin.configure({
-        webClientId: '295572026253-vt87r81lovfs1ptcpiomkals5l1n3qgb.apps.googleusercontent.com',
-        scopes: ['profile', 'email', 'openid'],
-        offlineAccess: true,
+        webClientId: '663954755774-6b94anmph0vdgibn9tfeplv87rioj1df.apps.googleusercontent.com',
+        scopes: [
+            "email",
+            "profile",
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive.file",
+        ],
+        offlineAccess: true,        // ✅ Must be true to get refresh token
+        forceCodeForRefreshToken: true, // ✅ Ensures prompt: 'consent'
     });
+
+
+    // const exchangeCodeForTokens = async (authCode) => {
+    //     try {
+    //         if (!authCode) {
+    //             console.warn('No authCode provided to exchangeCodeForTokens');
+    //             return;
+    //         }
+    //         // console.log('authcode : ', authCode);
+
+    //         // Use correct URL for your environment
+    //         const url = `https://secure.ceoitbox.com/auth/google/callback?code=${authCode}`
+
+
+    //         const response = await axios.get(url);
+    //         console.log('response:', response.data);
+    //     } catch (err) {
+    //         console.error('OAuth callback error:', err);
+    //     }
+    // };
+
+
 
     const googleLogin = async () => {
         try {
@@ -30,31 +61,36 @@ const AdminLogin = ({ navigation }) => {
             await GoogleSignin.hasPlayServices(); // Ensure Play Services are available
 
             const userInfo = await GoogleSignin.signIn(); // Sign in and get user info
-            const tokens = await GoogleSignin.getTokens(); // Get access and ID tokens
+            const authCode = userInfo?.data?.serverAuthCode;
 
-            const email = userInfo.data.user.email; // Extract the user's email
-            const idToken = tokens.idToken; // Extract the ID token
+            if (!authCode) {
+                setIsLoading(false);
+                // console.warn('No authCode provided');
+                return;
+            }
 
-            if (email && idToken) {
-                const response = await axios.post(
-                    'https://secure.ceoitbox.com/api/auth/google/login',
-                    {
-                        email, // Send the email
-                        idToken, // Send the ID token
-                    },
-                    {
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                    }
-                );
 
-                if (response.data) {
-                    const userId = response.data.body._id;
-                    const token = response.data.token;
+            if (authCode) {
+
+                const url = `https://secure.ceoitbox.com/auth/google/callback?code=${authCode}`
+
+
+                const response = await axios.get(url);
+
+                if (response?.data?.error) {
+                    
+                    setErrorModalText(response?.data?.error)
+                    setIsLoading(false);
+                    setErrorModal(true)
+                    return;
+                }
+
+                if (response?.data) {
+                    const userId = response?.data?.body?._id;
+                    const token = response?.data.token;
                     const role = response?.data?.body?.role;
+                    const email = response?.data?.body?.email ;
 
-                    // console.log('admin login role:', role); // Debugging log
 
                     const loginInfo = {
                         email: email,
@@ -82,9 +118,6 @@ const AdminLogin = ({ navigation }) => {
         }
     };
 
-
-
-
     return (
         <ImageBackground
             source={require('../assets/images/background.png')}
@@ -92,7 +125,7 @@ const AdminLogin = ({ navigation }) => {
             resizeMode="cover"
         >
             <View style={styles.container}>
-                <Header/>
+                <Header />
                 <View style={styles.adminSignIn}>
                     <Text style={styles.adminSignInText}>Admin Sign In</Text>
                 </View>
@@ -111,6 +144,14 @@ const AdminLogin = ({ navigation }) => {
 
                 </TouchableOpacity>
             </View>
+            {
+                errorModal && (
+                    <AdminLoginErrorModal
+                        errorModalText={errorModalText}
+                        setErrorModal={setErrorModal}
+                    />
+                )
+            }
         </ImageBackground>
     );
 };

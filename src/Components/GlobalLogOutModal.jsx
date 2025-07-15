@@ -2,7 +2,6 @@ import React from 'react';
 import { StyleSheet, View, Modal, TouchableOpacity } from 'react-native';
 import { Button, Text } from 'react-native-paper';  // Only use Paper components where needed
 import { responsiveFontSize, responsiveHeight, responsiveWidth } from 'react-native-responsive-dimensions';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import NoDataSvg2 from '../assets/Svgs/NoDataSvg2';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -11,15 +10,19 @@ import { useGlobalContext } from '../Context/GlobalContext';
 const GlobalLogOutModal = ({ modalVisible, setModalVisible, handleCancel,onClose }) => {
 	const navigation = useNavigation();
 	
-	const { showToast } = useGlobalContext();
+	const { showToast, data, setData , users, setUsers } = useGlobalContext();
 	const hideModal = () => setModalVisible(false);
 
 	const logOut = async () => {
 			try {
+				setData([]);
+				setUsers([]);
 				await AsyncStorage.removeItem('loginInfo');
 				await AsyncStorage.removeItem('loginUser');
 				await AsyncStorage.removeItem('userId');
 				navigation.replace('UserPermission');
+				// console.log('table data : ',data)
+				// console.log('userData : ',users)
 				showToast({
 					type: 'SUCCESS',
 					message: 'Logout successfully',
@@ -45,7 +48,7 @@ const GlobalLogOutModal = ({ modalVisible, setModalVisible, handleCancel,onClose
 				<View style={styles.backdrop}>
 					<View style={styles.modalContent}>
 						<View style={styles.iconBox}>
-							<NoDataSvg2 />
+							<NoDataSvg2 width={responsiveFontSize(12)} height={responsiveWidth(12)}/>
 							<Text style={styles.iconBoxText}>
 								Are You Sure?
 							</Text>
@@ -83,8 +86,7 @@ const styles = StyleSheet.create({
 
 	modalContent: {
 		backgroundColor: 'white',
-		padding: 25,
-		marginHorizontal: 40,
+		padding: 20,
 		borderRadius: 30,
 		width: responsiveWidth(90),
 		elevation: 10,
@@ -93,7 +95,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		justifyContent: 'center',
 		alignItems: 'center',
-		backgroundColor: 'rgba(0, 0, 0, 0.2)',  // Dim background effect
+		backgroundColor: 'rgba(0, 0, 0, 0.2)',  
 	},
 	iconBox: {
 		alignItems: 'center',
@@ -102,24 +104,22 @@ const styles = StyleSheet.create({
 	},
 	iconBoxText: {
 		textAlign: 'center',
-		fontSize: responsiveFontSize(2.7),
+		fontSize: responsiveFontSize(2.5),
 		color: '#222327',
-		fontFamily: 'Poppins',
-		fontWeight: '400',
+		fontFamily: 'Poppins-Medium',
 	},
 	modalMidTextContainer: {
-		width: responsiveWidth(55),
+		width: responsiveWidth(60),
 		alignSelf: 'center',
-		marginTop: 15,
+		marginVertical:10,
 	},
 	modalMidText: {
 		fontSize: responsiveFontSize(1.7),
 		textAlign: 'center',
+		fontFamily:'Poppins-Regular',
 		color: '#767A8D',
-		fontWeight: '400',
 	},
 	btnContainer: {
-		marginTop: 25,
 		alignSelf: 'center',
 		flexDirection: 'row',
 		gap: 20,

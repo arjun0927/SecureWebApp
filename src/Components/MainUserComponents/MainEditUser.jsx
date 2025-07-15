@@ -365,15 +365,12 @@ const MainEditUser = ({ route }) => {
 				[
 					{
 						text: "Camera",
-						onPress: async () => {
-							const response = await launchCamera({
-								mediaType: 'mixed',
-								quality: 0.5,
-								includeBase64: false,
-								saveToPhotos: true,
-							});
-
-							handleMediaResponse(response, field);
+						onPress: () => {
+							navigation.navigate('CameraVision', { 
+								field : field,
+								setImageUris,
+								onImageSelected: (uri) => handleInputChange(field, uri)
+							 });
 						}
 					},
 					{

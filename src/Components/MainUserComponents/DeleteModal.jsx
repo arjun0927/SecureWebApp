@@ -23,7 +23,7 @@ const DeleteModal = ({ modalVisible, setModalVisible, handleDelete, handleCancel
         <View style={styles.backdrop}>
           <View style={styles.modalContent}>
             <View style={styles.iconBox}>
-              <NoDataSvg2 />
+            <NoDataSvg2 width={responsiveFontSize(12)} height={responsiveWidth(12)}/>
               <Text style={styles.iconBoxText}>
                 Are You Sure?
               </Text>

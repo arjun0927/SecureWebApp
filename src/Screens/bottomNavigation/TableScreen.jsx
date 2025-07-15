@@ -21,7 +21,7 @@ import { useFocusEffect } from '@react-navigation/native';
 
 const TableScreen = ({ navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
-  
+
 
   // useEffect(() => {
   //   const backAction = () => {
@@ -33,32 +33,32 @@ const TableScreen = ({ navigation }) => {
   //   return () => backHandler.remove();
   // }, []);
 
-   useFocusEffect(
-     useCallback(() => {
-       const onBackPress = async () => {
-         try {
-           const loginInfo = await AsyncStorage.getItem('loginInfo');
-           const { token } = loginInfo ? JSON.parse(loginInfo) : {};
-           
-           if (token) {
-             BackHandler.exitApp();
-             return true; // Prevent default back action
-           } else {
-             return false; // Allow default back action (e.g., go to login)
-           }
-         } catch (error) {
-           console.error('Error reading token:', error);
-           return false;
-         }
-       };
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = async () => {
+        try {
+          const loginInfo = await AsyncStorage.getItem('loginInfo');
+          const { token } = loginInfo ? JSON.parse(loginInfo) : {};
 
-       BackHandler.addEventListener('hardwareBackPress', onBackPress);
+          if (token) {
+            BackHandler.exitApp();
+            return true; // Prevent default back action
+          } else {
+            return false; // Allow default back action (e.g., go to login)
+          }
+        } catch (error) {
+          console.error('Error reading token:', error);
+          return false;
+        }
+      };
 
-       return () => {
-         BackHandler.removeEventListener('hardwareBackPress', onBackPress);
-       };
-     }, [])
-   );
+      BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      return () => {
+        BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+      };
+    }, [])
+  );
 
 
   return (
@@ -96,24 +96,24 @@ const TableScreen = ({ navigation }) => {
         </View>
       </View>
 
-      
-        <View style={styles.mainContainer}>
-          <View style={styles.mainContainerTop}>
-            <TableIcon fillColor="#4D8733" strokeColor="white" width={responsiveFontSize(2.5)}
-								height={responsiveFontSize(2.5)} />
-            <Text style={styles.tableHeadingText}>List of Tables</Text>
-          </View>
-          <TableData />
-          
+
+      <View style={styles.mainContainer}>
+        <View style={styles.mainContainerTop}>
+          <TableIcon fillColor="#4D8733" strokeColor="white" width={responsiveFontSize(3)}
+            height={responsiveFontSize(3)} />
+          <Text style={styles.tableHeadingText}>List of Tables</Text>
         </View>
-        {
-            modalVisible && (
-              <UserThreeDotsModal
-                visible={modalVisible}
-                onClose={() => setModalVisible(false)}
-              />
-            )
-          }
+        <TableData />
+
+      </View>
+      {
+        modalVisible && (
+          <UserThreeDotsModal
+            visible={modalVisible}
+            onClose={() => setModalVisible(false)}
+          />
+        )
+      }
 
     </SafeAreaView>
   );
@@ -134,15 +134,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: responsiveWidth(4),
     gap: 15,
-    width:'100%',
-    // backgroundColor:'red'
   },
   leftHeader: {
     flexDirection: 'row',
     gap: responsiveWidth(2),
-    alignItems: 'center', 
-    width:'40%',
-    // backgroundColor:'red'
+    alignItems: 'center',
   },
   text1: {
     fontSize: responsiveFontSize(2),
@@ -166,12 +162,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
   },
-  keyboardAvoidingContainer: {
-    flex: 1,
-  },
   mainContainer: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: 'white',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
   },
@@ -180,13 +173,13 @@ const styles = StyleSheet.create({
     gap: 5,
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingHorizontal:20,
-    paddingTop:15
+    paddingHorizontal: 20,
+    paddingTop: 15
   },
   tableHeadingText: {
     color: 'black',
-		fontSize: responsiveFontSize(2.2),
-		fontFamily: 'Poppins-Medium',
-		marginTop:3,
+    fontSize: responsiveFontSize(2),
+    fontFamily: 'Poppins-Medium',
+    marginTop: 3,
   },
 });

@@ -25,6 +25,7 @@ const AnimatedTableSearchBar = () => {
   const animation = useRef(new Animated.Value(0)).current;
   const { data, setData } = useGlobalContext();
   const [originalData, setOriginalData] = useState([]);
+  const [isSearching, setIsSearching] = useState(false); // Track search state
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
   const isSmallScreen = windowWidth < 375;
@@ -32,13 +33,13 @@ const AnimatedTableSearchBar = () => {
   const isLargeScreen = windowWidth >= 768;
 
   const getSearchWidth = useCallback(() => {
-    if (isSmallScreen) return windowWidth * 0.65;
+    if (isSmallScreen) return windowWidth * 0.35;
     if (isMediumScreen) return windowWidth * 0.35;
     return windowWidth * 0.42;
   }, [windowWidth, isSmallScreen, isMediumScreen, isLargeScreen]);
 
   const getSearchIconSize = useCallback(() => {
-    if (isSmallScreen) return responsiveFontSize(2);
+    if (isSmallScreen) return responsiveFontSize(2.1);
     if (isMediumScreen) return responsiveFontSize(2.3);
     return responsiveFontSize(2.5);
   }, [isSmallScreen, isMediumScreen, isLargeScreen]);
@@ -55,25 +56,32 @@ const AnimatedTableSearchBar = () => {
     }
   }, [windowWidth, windowHeight, isExpanded]);
 
+  // FIXED: Better original data management
   useEffect(() => {
-    if (originalData.length === 0 && data?.length > 0) {
-      setOriginalData(data);
+    if (data?.length > 0 && !isSearching) {
+      // Only update original data when not searching
+      setOriginalData([...data]); // Create a deep copy
+      // console.log('Original data updated:', data.length, 'items');
     }
-  }, [data, originalData]);
+  }, [data, isSearching]);
 
-  // Add debounced search function
+  // FIXED: Debounced search function with proper state management
   const debouncedSearch = useCallback(
-    (text, originalData) => {
+    (text, originalDataToSearch) => {
       // console.log('Debounced search executed with:', text);
+      // console.log('Original Data length:', originalDataToSearch?.length);
+      
       const startTime = performance.now();
 
       if (!text || text.trim() === '') {
-        setData(originalData);
-        // console.log('Search cleared, reset to original data');
+        setIsSearching(false);
+        setData([...originalDataToSearch]); // Restore original data
         return;
       }
 
-      const filteredData = originalData.filter((item) => {
+      setIsSearching(true);
+
+      const filteredData = originalDataToSearch.filter((item) => {
         const tableName = item?.tableName?.toLowerCase() || '';
         const spreadsheetsName = item?.spreadsheetsName?.toLowerCase() || '';
         const uniqueField = item?.uniqueField?.toLowerCase() || '';
@@ -117,14 +125,21 @@ const AnimatedTableSearchBar = () => {
     debouncedSearchRef.current(text);
   };
 
+  // FIXED: Clear search function
+  const clearSearch = () => {
+    setInput('');
+    setIsSearching(false);
+    setData([...originalData]); // Restore original data
+    // console.log('Search cleared, restored original data');
+  };
+
   const toggleSearchBar = () => {
     setIsExpanded((prev) => {
       const newExpandedState = !prev;
 
-      // If closing the search bar, clear the input
+      // If closing the search bar, clear the input and restore data
       if (!newExpandedState) {
-        setInput('');
-        setData(originalData);
+        clearSearch();
       }
 
       Animated.timing(animation, {
@@ -166,7 +181,6 @@ const AnimatedTableSearchBar = () => {
         styles.mainContainer,
         {
           backgroundColor: animatedBackgroundColor,
-          // elevation: animatedElevation,
           height: isSmallScreen ? responsiveHeight(5.2) :
             isMediumScreen ? responsiveHeight(5.5) :
               responsiveHeight(5),
@@ -174,7 +188,6 @@ const AnimatedTableSearchBar = () => {
           paddingVertical: isSmallScreen ? responsiveHeight(0.5) :
             isMediumScreen ? responsiveHeight(0.6) :
               responsiveHeight(0.5),
-          // Animated width
           width: animatedContainerWidth,
         },
       ]}
@@ -229,10 +242,7 @@ const AnimatedTableSearchBar = () => {
       <View style={styles.clearButtonContainer}>
         {isExpanded && input.length > 0 && (
           <TouchableOpacity
-            onPress={() => {
-              setInput('');
-              setData(originalData);
-            }}
+            onPress={clearSearch} // Use the new clear function
             style={styles.clearButton}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >

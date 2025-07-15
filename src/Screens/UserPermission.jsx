@@ -9,7 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '../Components/Header';
 
 const UserPermission = ({ navigation }) => {
-    const [selectedButton, setSelectedButton] = useState(null); // Track which button is selected
+    const [selectedButton, setSelectedButton] = useState(null);
 
     const handlePress = (buttonType) => {
         setSelectedButton(buttonType);
@@ -36,7 +36,7 @@ const UserPermission = ({ navigation }) => {
                         <TouchableOpacity
                             activeOpacity={0.8}
                             onPress={() => handlePress('admin')}
-                            style={{ opacity: selectedButton && selectedButton !== 'admin' ? 0.4 : 1 }}
+                            style={{ opacity: selectedButton && selectedButton !== 'admin' ? 0.6 : 1 }}
                         >
                             <View
                                 style={[
@@ -62,7 +62,7 @@ const UserPermission = ({ navigation }) => {
                         <TouchableOpacity
                             activeOpacity={0.8}
                             onPress={() => handlePress('user')}
-                            style={{ opacity: selectedButton && selectedButton !== 'user' ? 0.4 : 1 }}
+                            style={{ opacity: selectedButton && selectedButton !== 'user' ? 0.6 : 1 }}
                         >
                             <View
                                 style={[
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: responsiveHeight(4.5),
         paddingVertical: responsiveHeight(1.6),
         borderColor: '#111220',
-        borderWidth: 1,
+        // borderWidth: 1,
         borderRadius: 30,
         justifyContent: 'center',
         alignItems: 'center',
@@ -156,7 +156,9 @@ const styles = StyleSheet.create({
     },
     activeBtn: {
         backgroundColor: '#F0FFEB',
-        borderWidth: 0,
+        borderWidth: 1,
+        borderColor:'#008309',
+        borderStyle:'dashed'
     },
     btnText: {
         fontSize: responsiveFontSize(1.9),

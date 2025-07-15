@@ -35,16 +35,16 @@ const AnimatedUsersSearchBar = () => {
 	const isLargeScreen = windowWidth >= 768;
 
 	const getSearchWidth = useCallback(() => {
-		if (isSmallScreen) return windowWidth * 0.65;
+		if (isSmallScreen) return windowWidth * 0.35;
 		if (isMediumScreen) return windowWidth * 0.35;
 		return windowWidth * 0.42;
-	}, [windowWidth, isSmallScreen, isMediumScreen, isLargeScreen]);
+	  }, [windowWidth, isSmallScreen, isMediumScreen, isLargeScreen]);
 
-	const getSearchIconSize = useCallback(() => {
-		if (isSmallScreen) return responsiveFontSize(2);
+	  const getSearchIconSize = useCallback(() => {
+		if (isSmallScreen) return responsiveFontSize(2.1);
 		if (isMediumScreen) return responsiveFontSize(2.3);
 		return responsiveFontSize(2.5);
-	}, [isSmallScreen, isMediumScreen, isLargeScreen]);
+	  }, [isSmallScreen, isMediumScreen, isLargeScreen]);
 
 	// Update animation config on screen resize
 	useEffect(() => {

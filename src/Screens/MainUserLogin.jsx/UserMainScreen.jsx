@@ -12,6 +12,7 @@ import UserThreeDotsModal from '../../Components/MainUserComponents/UserThreeDot
 const UserMainScreen = ({ navigation }) => {
 	const [modalVisible, setModalVisible] = useState(false);
 
+
 	useEffect(() => {
 		const backAction = () => {
 			if (navigation.isFocused()) {
@@ -91,62 +92,65 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: '#E0FFD3',
-	},
-	header: {
+	  },
+	  header: {
 		height: responsiveHeight(10),
 		backgroundColor: '#E0FFD3',
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		alignItems: 'center',
-		paddingHorizontal: 20,
+		paddingHorizontal: responsiveWidth(4),
 		gap: 15,
-	},
-	leftHeader: {
-		flexDirection: 'row', // Left header with logo and text
+		width:'100%',
+	  },
+	  leftHeader: {
+		flexDirection: 'row',
 		gap: responsiveWidth(2),
-		alignItems: 'center', // Aligning the content vertically in the center
-	},
-	text1: {
+		alignItems: 'center', 
+	  },
+	  text1: {
 		fontSize: responsiveFontSize(2),
 		color: '#222327',
 		lineHeight: responsiveFontSize(2.5),
 		fontFamily: 'Poppins-SemiBold',
-	},
-	img: {
+	  },
+	  img: {
 		width: responsiveWidth(9),
 		height: responsiveWidth(9),
 		resizeMode: 'contain',
-	},
-	iconContainer: {
+	  },
+	  iconContainer: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		gap: 15,
-	},
-	iconContainerCircle: {
+		gap: responsiveWidth(3),
+	  },
+	  iconContainerCircle: {
 		shadowColor: '#000',
 		shadowOffset: { width: 0, height: 2 },
 		shadowOpacity: 0.2,
 		shadowRadius: 4,
-	},
-
-	mainContainer: {
+	  },
+	  keyboardAvoidingContainer: {
+		flex: 1,
+	  },
+	  mainContainer: {
 		flex: 1,
 		backgroundColor: '#FFF',
 		borderTopLeftRadius: 20,
 		borderTopRightRadius: 20,
-		// padding: 20,
-	},
-	mainContainerTop: {
+	  },
+	  mainContainerTop: {
 		flexDirection: 'row',
-		gap: responsiveWidth(1),
+		gap: 5,
 		alignItems: 'center',
 		justifyContent: 'flex-start',
-		marginVertical: 20,
-		marginHorizontal: 20,
-	},
-	tableHeadingText: {
-		color: 'black',
-		fontSize: responsiveFontSize(2.2),
-		fontWeight: '500',
-	},
+		paddingHorizontal:20,
+		paddingTop:15
+	  },
+	  tableHeadingText: {
+			color: 'black',
+			fontSize: responsiveFontSize(2),
+			fontFamily: 'Poppins-Medium',
+			marginTop:3,
+		},
 });

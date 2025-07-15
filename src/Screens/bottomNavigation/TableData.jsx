@@ -31,6 +31,8 @@ const TableData = ({ navigation }) => {
     };
   }, []);
 
+  // console.log('tableScreen : ',data)
+
   useEffect(() => {
     const fetchData = async () => {
       try {

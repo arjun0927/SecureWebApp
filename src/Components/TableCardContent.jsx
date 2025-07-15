@@ -79,7 +79,7 @@ const TableCardContent = ({ item, tableAccess }) => {
                     style={styles.iconButton}
                     onPress={() => setModalVisible(true)}
                   >
-                    <DeleteSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)} />
+                    <DeleteSvg width={responsiveFontSize(2.2)} height={responsiveFontSize(2.2)} />
                   </TouchableOpacity>
                 )
               }
@@ -95,7 +95,7 @@ const TableCardContent = ({ item, tableAccess }) => {
               }
             </>
             <TouchableOpacity onPress={toggleOpen} style={styles.toggleButton}>
-              {isOpen ? <DownArrowSvg width={responsiveFontSize(1.6)} height={responsiveFontSize(1.6)} /> : <TopArrowSvg width={responsiveFontSize(1.6)} height={responsiveFontSize(1.6)} />}
+              {isOpen ? <DownArrowSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)} /> : <TopArrowSvg width={responsiveFontSize(2)} height={responsiveFontSize(2)} />}
             </TouchableOpacity>
           </View>
         </View>
@@ -145,18 +145,17 @@ const styles = StyleSheet.create({
     borderColor: '#BDC3D4',
   },
   headerLeft: {
-    width: '80%',
     flexDirection: 'row',
     alignItems: 'center',
-    // backgroundColor:'red',
-    gap: 8,
+    // gap: 8,
+    width:'50%',
   },
   headerRight: {
-    width: '20%',
     flexDirection: 'row',
+    justifyContent:'flex-end',
     alignItems: 'center',
-    // backgroundColor:'green',
-    gap: 5,
+    gap: responsiveWidth(5),
+    width:'50%',
   },
   title: {
     fontFamily: 'Montserrat-Medium',
@@ -166,17 +165,16 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     backgroundColor: '#EEF5ED',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
+    width: responsiveWidth(7),
+    height: responsiveWidth(7),
+    borderRadius: responsiveWidth(3.5),
     justifyContent: 'center',
     alignItems: 'center',
   },
   toggleButton: {
-    width: 35,
-    height: 39,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: responsiveWidth(1),
   },
   dataRow: {
     flexDirection: 'row',

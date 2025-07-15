@@ -36,9 +36,23 @@ const UserRaiseTicket = () => {
 	const navigation = useNavigation();
 	const { showToast } = useGlobalContext();
 
+	const validateEmail = (email) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
+
 	const handleSave = async () => {
 		if (!isFormValid) return;
 		setLoader(true);
+
+		if(!validateEmail(email)){
+			showToast({
+				type: 'ERROR',
+				message: 'Invalid Email',
+			})
+			setLoader(false)
+			return;
+		}
 
 		const payload = {
 			"Issue Statement": issueType,
@@ -61,7 +75,7 @@ const UserRaiseTicket = () => {
 					},
 				}
 			);
-			console.log('Response:', response.data);
+			// console.log('Response:', response.data);
 
 			if (response.status === 200) {
 				setLoader(false);
@@ -164,6 +178,7 @@ const UserRaiseTicket = () => {
 								underlineColor='#B9BDCF'
 								activeUnderlineColor='#767A8D'
 								textColor='black'
+								keyboardType='email-address'
 							/>
 						</View>
 						
@@ -176,6 +191,7 @@ const UserRaiseTicket = () => {
 								underlineColor='#B9BDCF'
 								activeUnderlineColor='#767A8D'
 								textColor='black'
+								keyboardType='phone-pad'
 							/>
 						</View>
 						
@@ -218,7 +234,7 @@ const UserRaiseTicket = () => {
 									</Text>
 									<Feather
 										name={isAccordionOpen ? 'chevron-up' : 'chevron-down'}
-										size={23}
+										size={responsiveFontSize(2)}
 										color="gray"
 									/>
 								</View>

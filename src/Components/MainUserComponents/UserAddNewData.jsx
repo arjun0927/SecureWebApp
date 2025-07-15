@@ -310,6 +310,7 @@ const UserAddNewData = ({ route }) => {
 	// Optimize input change handler with useCallback
 	const handleInputChange = useCallback((field, value) => {
 		// Check if the field is a checkbox and convert the value to uppercase TRUE/FALSE
+		// console.log('uri : ',value , field)
 		if (tableAccess[field]?.dataType === 'Checkbox') {
 			value = value ? 'TRUE' : 'FALSE';
 		}
@@ -338,7 +339,11 @@ const UserAddNewData = ({ route }) => {
 				{
 					text: "Camera",
 					onPress: () => {
-						navigation.navigate('CameraVision', { field });
+						navigation.navigate('CameraVision', { 
+							field : field,
+							setImageUris,
+							onImageSelected: (uri) => handleInputChange(field, uri)
+						 });
 					}
 				},
 				{

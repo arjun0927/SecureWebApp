@@ -9,7 +9,6 @@ import axios from 'axios';
 import Video from 'react-native-video';
 import Feather from 'react-native-vector-icons/Feather';
 import { UIActivityIndicator } from 'react-native-indicators';
-import { ImageZoom } from '@likashefqet/react-native-image-zoom';
 
 const { width, height } = Dimensions.get('window');
 

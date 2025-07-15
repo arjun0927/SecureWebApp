@@ -7,6 +7,7 @@ import { responsiveFontSize, responsiveHeight, responsiveWidth } from 'react-nat
 import Feather from 'react-native-vector-icons/Feather';
 import { useGlobalContext } from '../Context/GlobalContext';
 import getToken from './getToken';
+import Toast from 'react-native-toast-message';
 
 const DuplicateUsers = ({ modalVisible, setModalVisible, handleDelete, handleCancel, duplicateUser, setDuplicateUser }) => {
   const [name, setName] = useState('');
@@ -15,7 +16,7 @@ const DuplicateUsers = ({ modalVisible, setModalVisible, handleDelete, handleCan
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { showToast, users, setUsers } = useGlobalContext()
+  const { showToast, users, setUsers, toastConfig } = useGlobalContext()
 
   // console.log('userdata',duplicateUser)
 
@@ -32,9 +33,10 @@ const DuplicateUsers = ({ modalVisible, setModalVisible, handleDelete, handleCan
 
     setIsLoading(true);
     if (duplicateUser.email === email) {
-      showToast(
-        { type: 'ERROR', message: 'User with same Email ID already exists' }
-      )
+      showToast({
+        type: 'ERROR',
+        message: 'User with same Email ID already exists '
+      })
       setIsLoading(false);
       return;
     }
@@ -90,6 +92,7 @@ const DuplicateUsers = ({ modalVisible, setModalVisible, handleDelete, handleCan
         onRequestClose={hideModal}
       >
         <View style={styles.backdrop}>
+          <Toast config={toastConfig} />
           <View style={styles.modalContent}>
             <View style={styles.topHeader}>
               <Text style={styles.topHeaderText}>
@@ -102,7 +105,7 @@ const DuplicateUsers = ({ modalVisible, setModalVisible, handleDelete, handleCan
               </Text>
             </View>
 
-            <ScrollView 
+            <ScrollView
               contentContainerStyle={styles.form}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
@@ -136,7 +139,7 @@ const DuplicateUsers = ({ modalVisible, setModalVisible, handleDelete, handleCan
                   autoCapitalize="none"
                 />
               </View>
-              
+
               <View style={styles.inputGroup}>
                 <View style={styles.passwordContainer}>
                   <TextInput
@@ -167,7 +170,18 @@ const DuplicateUsers = ({ modalVisible, setModalVisible, handleDelete, handleCan
             </ScrollView>
 
             <View style={styles.btnContainer}>
-              <TouchableOpacity 
+              <TouchableOpacity
+                onPress={handleSave}
+                style={styles.btnWrapper}
+              >
+                <View style={styles.btnContainer2}>
+                  {isLoading ?
+                    <ActivityIndicator size={responsiveFontSize(2)} color='white' />
+                    : <Text style={styles.btnContainer2Text}>Create</Text>
+                  }
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
                 onPress={handleCancel}
                 style={styles.btnWrapper}
               >
@@ -175,17 +189,7 @@ const DuplicateUsers = ({ modalVisible, setModalVisible, handleDelete, handleCan
                   <Text style={styles.btnContainer1Text}>Cancel</Text>
                 </View>
               </TouchableOpacity>
-              <TouchableOpacity 
-                onPress={handleSave}
-                style={styles.btnWrapper}
-              >
-                <View style={styles.btnContainer2}>
-                  {isLoading ? 
-                    <ActivityIndicator size={responsiveFontSize(2)} color='white' /> 
-                    : <Text style={styles.btnContainer2Text}>Create</Text>
-                  }
-                </View>
-              </TouchableOpacity>
+
             </View>
           </View>
         </View>

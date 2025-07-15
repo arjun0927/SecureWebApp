@@ -810,14 +810,15 @@ const AllUserData = ({ route }) => {
 			{
 				loading ? (
 					<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-						<UIActivityIndicator color={'#4D8733'} />
+						<UIActivityIndicator  color={'#4D8733'} />
 					</View>
+				) : filteredData.length === 0 ? (
+					<ListEmptyComponent />
 				) : (
 					<FlatList
 						data={filteredData}
 						renderItem={renderItem}
 						keyExtractor={(item, index) => item?.__ID?.toString() || index.toString()}
-						ListEmptyComponent={ListEmptyComponent}
 						ListFooterComponent={renderFooter}
 						onEndReached={loadMoreData}
 						onEndReachedThreshold={0.5}

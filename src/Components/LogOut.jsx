@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   btnContainer1Text: {
     color: '#767A8D',
     textAlign: 'center',
-    fontSize:16,
+    fontSize:responsiveFontSize(2),
   },
   btnContainer2: {
     width: responsiveWidth(30),
@@ -124,6 +124,6 @@ const styles = StyleSheet.create({
   },
   btnContainer2Text: {
     color: 'white',
-    fontSize:16,
+    fontSize:responsiveFontSize(2),
   }
 });

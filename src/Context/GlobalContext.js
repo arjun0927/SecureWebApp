@@ -87,47 +87,127 @@ export const GlobalProvider = ({ children }) => {
       type: type.toLowerCase(),
       position: 'top',
       text1: message,
-      visibilityTime: 3000,
+      visibilityTime: 2000,
       autoHide: true,
+      topOffset: 30, 
     });
   };
 
   const toastConfig = {
     success: ({ text1 }) => (
       <BaseToast
-        style={{ borderLeftColor: 'green', backgroundColor: '#FFF' }}
-        contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}
+        style={{ 
+          borderLeftColor: 'green', 
+          backgroundColor: '#FFF',
+          height: 'auto', // Allow dynamic height
+          minHeight: 60,
+          paddingVertical: 10,
+          width: '90%', 
+          alignItems:'center',
+          alignSelf: 'center',
+        }}
+        contentContainerStyle={{ 
+          flexDirection: 'row', 
+          alignItems: 'flex-start', // Changed to flex-start for better alignment
+          flex: 1,
+          paddingHorizontal: 10,
+        }}
         text1={text1}
-        text1Style={{ color: 'black', fontSize: responsiveFontSize(2.1), fontFamily: 'Poppins-Medium' }}
+        text1Style={{ 
+          color: 'black', 
+          fontSize: responsiveFontSize(2.1), 
+          fontFamily: 'Poppins-Medium',
+          flex: 1, 
+          flexWrap: 'wrap', // Enable text wrapping
+          textAlign: 'left',
+          // lineHeight: responsiveFontSize(2.8), // Add line height for better readability
+        }}
+        text1NumberOfLines={0} // Allow unlimited lines
         renderLeadingIcon={() => (
-          <View style={{ alignItems: 'center', flexDirection: 'row', marginLeft: 20 }}>
-            <MaterialIcons name="check-circle" size={25} color="green" />
+          <View style={{ 
+            alignItems: 'center', 
+            flexDirection: 'row', 
+            marginLeft:10
+          }}>
+            <MaterialIcons name="check-circle" size={responsiveFontSize(3.3)} color="green" />
           </View>
         )}
       />
     ),
     error: ({ text1 }) => (
       <BaseToast
-        style={{ borderLeftColor: 'red', backgroundColor: '#FFF' }}
-        contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}
+        style={{ 
+          borderLeftColor: 'red', 
+          backgroundColor: '#FFF',
+          height: 'auto',
+          minHeight: 60,
+          paddingVertical: 12,
+          width: '90%',
+          alignSelf: 'center',
+        }}
+        contentContainerStyle={{ 
+          flexDirection: 'row', 
+          alignItems: 'flex-start',
+          flex: 1,
+          paddingHorizontal: 10,
+        }}
         text1={text1}
-        text1Style={{ color: 'black', fontSize: responsiveFontSize(2.1), fontFamily: 'Poppins-Medium' }}
+        text1Style={{ 
+          color: 'black', 
+          fontSize: responsiveFontSize(2.1), 
+          fontFamily: 'Poppins-Medium',
+          flex: 1,
+          flexWrap: 'wrap',
+          textAlign: 'left',
+          // lineHeight: responsiveFontSize(2.8),
+        }}
+        text1NumberOfLines={0}
         renderLeadingIcon={() => (
-          <View style={{ alignItems: 'center', flexDirection: 'row', marginLeft: 20 }}>
-            <MaterialIcons name="error" size={20} color="red" />
+          <View style={{ 
+            alignItems: 'center', 
+            flexDirection: 'row', 
+            marginLeft:10
+          }}>
+            <MaterialIcons name="error" size={responsiveFontSize(3.3)} color="red" />
           </View>
         )}
       />
     ),
     warning: ({ text1 }) => (
       <BaseToast
-        style={{ borderLeftColor: 'orange', backgroundColor: '#FFF' }}
-        contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}
+        style={{ 
+          borderLeftColor: 'orange', 
+          backgroundColor: '#FFF',
+          height: 'auto',
+          minHeight: 60,
+          paddingVertical: 12,
+          width: '90%',
+          alignSelf: 'center',
+        }}
+        contentContainerStyle={{ 
+          flexDirection: 'row', 
+          alignItems: 'flex-start',
+          flex: 1,
+          paddingHorizontal: 10,
+        }}
         text1={text1}
-        text1Style={{ color: 'black', fontSize: responsiveFontSize(2.1), fontWeight: 'bold' }}
+        text1Style={{ 
+          color: 'black', 
+          fontSize: responsiveFontSize(2.1), 
+          fontWeight: 'bold',
+          flex: 1,
+          flexWrap: 'wrap',
+          textAlign: 'left',
+          // lineHeight: responsiveFontSize(2.8),
+        }}
+        text1NumberOfLines={0}
         renderLeadingIcon={() => (
-          <View style={{ alignItems: 'center', flexDirection: 'row', marginLeft: 20 }}>
-            <MaterialIcons name="warning" size={20} color="orange" />
+          <View style={{ 
+            alignItems: 'center', 
+            flexDirection: 'row', 
+            marginLeft:10
+          }}>
+            <MaterialIcons name="warning" size={responsiveFontSize(3.3)} color="orange" />
           </View>
         )}
       />
@@ -240,6 +320,7 @@ export const GlobalProvider = ({ children }) => {
     TableData,
     globalFieldSettings,
     setGlobalFieldSettings,
+    toastConfig
   };
 
   return (

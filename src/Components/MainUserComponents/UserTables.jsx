@@ -9,6 +9,7 @@ const UserTables = ({ navigation }) => {
   const [tableAccess, setTableAccess] = useState(null);
   const [tableLoader, setTableLoader] = useState(false);
   const { getDataByToken, getTables, data, setData } = useGlobalContext();
+  
 
   useEffect(() => {
     const fetchData = async () => {

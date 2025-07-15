@@ -209,7 +209,7 @@ const EditUser = ({ route }) => {
 						style={{ flexDirection: 'row', alignItems: 'center' }}
 						onPress={() => navigation.goBack()}
 					>
-						<Feather name="chevron-left" size={24} color="black" />
+						<Feather name="chevron-left" size={responsiveFontSize(2.5)} color="black" />
 						<Text style={styles.headerTitle}>{editData?.userName}</Text>
 					</TouchableOpacity>
 				</View>
@@ -260,7 +260,7 @@ const EditUser = ({ route }) => {
 									>
 										<Feather
 											name={passwordVisible ? 'eye' : 'eye-off'}
-											size={18}
+											size={responsiveFontSize(1.7)}
 											color="#222327"
 										/>
 									</TouchableOpacity>
@@ -287,7 +287,7 @@ const EditUser = ({ route }) => {
 															style={styles.clearButton}
 															hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
 														>
-															<Feather name="x" size={16} color="#666" />
+															<Feather name="x" size={responsiveFontSize(1.6)} color="#666" />
 														</TouchableOpacity>
 													</View>
 												))
@@ -297,7 +297,7 @@ const EditUser = ({ route }) => {
 										</View>
 										<Feather
 											name={isAccordionOpen ? 'chevron-down' : 'chevron-right'}
-											size={20}
+											size={responsiveFontSize(2)}
 											color="#666"
 										/>
 									</View>
@@ -323,7 +323,7 @@ const EditUser = ({ route }) => {
 													</Text>
 
 													{selectedTables.some(t => t._id === item._id) && (
-														<Feather name="check" size={18} color="#4D8733" />
+														<Feather name="check" size={responsiveFontSize(1.9)} color="#4D8733" />
 													)}
 												</TouchableOpacity>
 											))}

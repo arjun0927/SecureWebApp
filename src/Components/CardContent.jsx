@@ -127,12 +127,9 @@ const CardContent = ({ data, onlineUser, isConnected }) => {
         <View style={[styles.header]}>
           <View style={styles.headerLeft}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-              <Text style={styles.title}>{data.userName}</Text>
-              {/* <View style={{ marginTop: 2 }}>
-                {getOnlineStatus() ? <OnlineIndicator /> : <View />}
-              </View> */}
+              <Text ellipsizeMode='tail' numberOfLines={1} style={styles.title}>{data.userName}</Text>
             </View>
-            <Text style={styles.email}>{data.email}</Text>
+            <Text ellipsizeMode='tail' numberOfLines={1} style={styles.email}>{data.email}</Text>
           </View>
           <View style={styles.headerRight}>
             <TouchableOpacity
@@ -221,8 +218,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderColor: '#FFFFFF',
+    // borderBottomWidth: 1,
+    // borderColor: '#FFFFFF',
   },
   headerOpen: {
     marginTop: responsiveHeight(1.5),
@@ -233,11 +230,14 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'column',
     alignItems: 'flex-start',
+    width:'50%',
   },
   headerRight: {
     flexDirection: 'row',
+    justifyContent:'flex-end',
     alignItems: 'center',
     gap: responsiveWidth(5),
+    width:'50%',
   },
   title: {
     fontFamily: 'Montserrat-Medium',

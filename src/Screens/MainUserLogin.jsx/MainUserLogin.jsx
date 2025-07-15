@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, TextInput as RNTextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, TextInput as RNTextInput, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Alert } from 'react-native';
 import LockSvg from '../../assets/Svgs/LockSvg';
 import EmailSvg from '../../assets/Svgs/EmailSvg';
 import {
@@ -30,72 +30,147 @@ const MainUserLogin = ({ navigation }) => {
     const [otpLoader, setOtpLoader] = useState(false);
     const [otp, setOtp] = useState('');
     const [visibleOtpUI, setVisibleOtpUI] = useState(false);
-    const [activeIndex, setActiveIndex] = useState(0); // Track which OTP cell is active
-    const [focusedInput, setFocusedInput] = useState(null); // Add this new state
+    const [activeIndex, setActiveIndex] = useState(0);
+    const [focusedInput, setFocusedInput] = useState(null);
 
     const { showToast } = useGlobalContext();
 
-    // Always declare hooks at the top level, outside of any conditions
     const codeFieldRef = useBlurOnFulfill({ value: otp, cellCount: 5 });
     const [props, getCellOnLayoutHandler] = useClearByFocusCell({
         value: otp,
         setValue: setOtp,
     });
 
+    const navigateToDestination = useCallback((role, shouldReplace = false) => {
+        const destination = role === 'ADMIN' ? 'BottomNavigation' : 'UserMainScreen';
+        
+        if (shouldReplace) {
+            navigation.replace(destination);
+        } else {
+            navigation.navigate(destination);
+        }
+    }, [navigation]);
+
+    // Clear form data
+    const clearFormData = useCallback(() => {
+        setEmail('');
+        setPassword('');
+        setOtp('');
+        setVisibleOtpUI(false);
+        setActiveIndex(0);
+        setFocusedInput(null);
+    }, []);
+
+    // Store login info securely
+    const storeLoginInfo = useCallback(async (token, role, userId) => {
+        try {
+            const loginInfo = {
+                email: email.trim(),
+                token,
+                role,
+                timestamp: Date.now()
+            };
+            
+            await Promise.all([
+                AsyncStorage.setItem('userId', userId),
+                AsyncStorage.setItem('loginInfo', JSON.stringify(loginInfo))
+            ]);
+            
+            return true;
+        } catch (error) {
+            console.error('Error storing login info:', error);
+            return false;
+        }
+    }, [email]);
+
+    // Check existing session
     useEffect(() => {
-        const checkToken = async () => {
+        const checkExistingSession = async () => {
             try {
                 const data = await AsyncStorage.getItem('loginInfo');
-                // console.log('data : ',data)
-                if(data === null){
-                    return ;
-                }
+                if (!data) return;
+
                 const parsedData = JSON.parse(data);
-                // const token = parsedData?.token;
-                const {token , role } = parsedData ;
+                const { token, role, timestamp } = parsedData;
                 
-                if (token && role === 'USER') {
-                    // Navigate to UserMainScreen if token exists
-                    navigation.replace('UserMainScreen');
-                }else{
-                    navigation.replace('BottomNavigation');
+                // Check if token exists and is not expired (optional: add expiry check)
+                if (token && role) {
+                    // Optional: Check if token is still valid with server
+                    navigateToDestination(role, true);
                 }
-            } catch (err) {
-                console.error('Error checking token:', err);
+            } catch (error) {
+                console.error('Error checking existing session:', error);
+                // Clear corrupted data
+                await AsyncStorage.multiRemove(['loginInfo', 'userId']);
             }
         };
 
-        checkToken();
-    }, [navigation]);
+        checkExistingSession();
+    }, [navigateToDestination]);
 
-    // Determine if both email and password are filled
+    // Form validation
     const isFormValid = email.trim() !== '' && password.trim() !== '';
 
     useEffect(() => {
-        console.log('otp', otp);
-        // Update active index based on OTP length if not manually set
         if (otp.length < 5) {
             setActiveIndex(otp.length);
         }
     }, [otp]);
 
-    // Handle sign-in logic with API call
-    const handleSignIn = async () => {
-        if (!isFormValid) return;
-
+    // Email validation
+    const validateEmail = (email) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!email.trim()) {
+        return emailRegex.test(email);
+    };
+
+    // Handle navigation after successful login
+    const handleSuccessfulLogin = useCallback(async (response) => {
+        try {
+            const { token, body } = response.data;
+            const { _id: userId, role } = body;
+
+            // Store login information
+            const storeSuccess = await storeLoginInfo(token, role, userId);
+            
+            if (!storeSuccess) {
+                throw new Error('Failed to store login information');
+            }
+
+            // Show success message
+            showToast({
+                type: 'SUCCESS',
+                message: 'Login successful'
+            });
+
+            // Clear form data
+            clearFormData();
+
+            // Navigate to appropriate screen
+            navigateToDestination(role);
+            
+        } catch (error) {
+            console.error('Error handling successful login:', error);
             showToast({
                 type: 'ERROR',
-                message: 'Please enter your email',
+                message: 'Login successful but failed to save session'
+            });
+        }
+    }, [storeLoginInfo, showToast, clearFormData, navigateToDestination]);
+
+    // Main sign-in handler
+    const handleSignIn = async () => {
+        if (!isFormValid) {
+            showToast({
+                type: 'ERROR',
+                message: 'Please fill in all required fields'
             });
             return;
         }
 
-        if (!emailRegex.test(email)) {
+        if (!validateEmail(email)) {
             showToast({
                 type: 'ERROR',
-                message: 'Please enter a valid email address',
+                message: 'Please enter a valid email address'
             });
             return;
         }
@@ -103,97 +178,90 @@ const MainUserLogin = ({ navigation }) => {
         setIsLoading(true);
 
         try {
-            // Check if OTP is required for this login
+            // Check if OTP is required
             const validationResult = await checkValidLogin({ email, password, otp });
 
-            // ✅ Show toast and return if there's a validation error
             if (validationResult?.error) {
                 showToast({
                     type: 'ERROR',
-                    message: validationResult.error, // Make sure this is a string
+                    message: validationResult.error
                 });
-                setIsLoading(false);
                 return;
             }
 
             const askOtp = validationResult?.askOTP;
 
+            // Handle OTP flow
             if (askOtp && !visibleOtpUI) {
-                // First time OTP is requested, show OTP UI
                 setVisibleOtpUI(true);
                 await sendOtp();
-                setIsLoading(false);
                 return;
             } else if (askOtp && visibleOtpUI) {
-                // User has entered OTP, validate it
                 if (!otp || otp.length < 5) {
                     showToast({
                         type: 'ERROR',
-                        message: 'Please enter a valid OTP'
+                        message: 'Please enter a valid 5-digit OTP'
                     });
-                    setIsLoading(false);
                     return;
                 }
             }
 
-            // Proceed with login API call
+            // API call for login
             const response = await axios.post('https://secure.ceoitbox.com/api/signin', {
-                email,
+                email: email.trim(),
                 password,
                 otp: visibleOtpUI ? otp : '',
             });
 
-            console.log('login response', response.data);
-
-            if (response.data && response.data.token) {
-                await AsyncStorage.setItem('userId', response.data.body._id);
-
-                const token = response.data.token;
-                const role = response.data.body.role;
-                const loginInfo = {
-                    email: email.trim(),
-                    token: token,
-                    role: role,
-                };
-                // console.log('loginInfo : ',loginInfo)
-                await AsyncStorage.setItem('loginInfo', JSON.stringify(loginInfo));
-
-                showToast({
-                    type: 'SUCCESS',
-                    message: 'Login successful'
-                });
-
-                if(role === 'ADMIN'){
-                    navigation.navigate('BottomNavigation');
-                }else{
-                    navigation.navigate('UserMainScreen');
-                }
-                setEmail('');
-                setPassword('');
-                setOtp('');
-                setVisibleOtpUI(false);
+            // Handle successful response
+            if (response.data?.token && response.data?.body) {
+                await handleSuccessfulLogin(response);
             } else {
                 showToast({
                     type: 'ERROR',
-                    message: 'Login failed. Please check your credentials'
+                    message: 'Invalid response from server'
                 });
             }
-        } catch (err) {
-            console.error(err);
-            showToast({
-                type: 'ERROR',
-                message: 'Failed to sign in. Please try again'
-            });
+
+        } catch (error) {
+            console.error('Login error:', error);
+            
+            // Handle specific error cases
+            if (error.response?.status === 401) {
+                showToast({
+                    type: 'ERROR',
+                    message: 'Invalid email or password'
+                });
+            } else if (error.response?.status === 422) {
+                showToast({
+                    type: 'ERROR',
+                    message: 'Invalid OTP. Please try again'
+                });
+            } else {
+                showToast({
+                    type: 'ERROR',
+                    message: 'Login failed. Please check your internet connection'
+                });
+            }
         } finally {
             setIsLoading(false);
         }
     };
 
+    // Send OTP
     const sendOtp = async () => {
         if (!email.trim()) {
             showToast({
                 type: 'ERROR',
-                message: 'Please enter your email',
+                message: 'Please enter your email first'
+            });
+            return;
+        }
+
+        if (!validateEmail(email)) {
+            showToast({
+                type: 'ERROR',
+                message: 'Please enter a valid email address'
             });
             return;
         }
@@ -202,7 +270,7 @@ const MainUserLogin = ({ navigation }) => {
 
         try {
             const response = await axios.post('https://secure.ceoitbox.com/api/sendUserOTP', {
-                email,
+                email: email.trim(),
             });
 
             if (response.data) {
@@ -211,8 +279,8 @@ const MainUserLogin = ({ navigation }) => {
                     message: 'OTP sent successfully'
                 });
             }
-        } catch (err) {
-            console.error(err);
+        } catch (error) {
+            console.error('OTP sending error:', error);
             showToast({
                 type: 'ERROR',
                 message: 'Failed to send OTP. Please try again'
@@ -222,188 +290,183 @@ const MainUserLogin = ({ navigation }) => {
         }
     };
 
-    // Handle cell touch to edit specific position
+    // Handle cell press for OTP
     const handleCellPress = (index) => {
         setActiveIndex(index);
-        // If the input has focus, this will bring up the keyboard
-        if (codeFieldRef && codeFieldRef.current) {
+        if (codeFieldRef?.current) {
             codeFieldRef.current.focus();
         }
     };
 
-    // Custom handler for OTP changes that supports editing at any position
+    // Handle OTP change
     const handleOtpChange = (text) => {
-        // If deleting, remove the character at activeIndex-1
         if (text.length < otp.length) {
-            // Handle backspace - remove character at active position
             const newOtp = otp.slice(0, activeIndex - 1) + otp.slice(activeIndex);
             setOtp(newOtp);
             setActiveIndex(Math.max(0, activeIndex - 1));
-        }
-        // If adding a character
-        else if (text.length > otp.length) {
-            // Get the new character (last char of text)
+        } else if (text.length > otp.length) {
             const newChar = text.charAt(text.length - 1);
-
-            // Only accept numeric input
-            if (/^\d$/.test(newChar)) {
-                // Insert at active position or append to end
-                if (activeIndex < 5) {
-                    const newOtp = otp.slice(0, activeIndex) + newChar + otp.slice(activeIndex);
-                    // Limit to 5 characters
-                    setOtp(newOtp.slice(0, 5));
-                    // Move cursor right if there's room
-                    setActiveIndex(Math.min(newOtp.length, 5));
-                }
+            if (/^\d$/.test(newChar) && activeIndex < 5) {
+                const newOtp = otp.slice(0, activeIndex) + newChar + otp.slice(activeIndex);
+                setOtp(newOtp.slice(0, 5));
+                setActiveIndex(Math.min(newOtp.length, 5));
             }
         }
     };
 
+    // Check if form is ready for submission
+    const isSubmitReady = isFormValid && (!visibleOtpUI || otp.length === 5);
+
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <KeyboardAvoidingView
-                style={{ flex: 1 }}
-                behavior={Platform.OS === 'android' ? 'padding' : 'padding'}
+                style={styles.container}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
-                <View style={styles.container}>
-                    <Header />
-                    <View style={styles.signIn}>
-                        <MaterialIcons name={'login'} size={responsiveFontSize(2.7)} color={'black'} />
-                        <Text style={styles.signInText}>Sign In</Text>
-                    </View>
-
-                    <View style={styles.inputContainer}>
-                        <View style={[
-                            styles.inputWrapper,
-                            focusedInput === 'email' && styles.inputWrapperFocused
-                        ]}>
-                            <EmailSvg width={responsiveFontSize(2.3)} height={responsiveFontSize(2.2)} />
-                            <RNTextInput
-                                style={styles.textInput}
-                                placeholder="Email ID*"
-                                placeholderTextColor={'gray'}
-                                value={email}
-                                onChangeText={setEmail}
-                                keyboardType='email-address'
-                                onFocus={() => setFocusedInput('email')}
-                                onBlur={() => setFocusedInput(null)}
-                            />
-                        </View>
-
-                        <View style={[
-                            styles.inputWrapper,
-                            focusedInput === 'password' && styles.inputWrapperFocused
-                        ]}>
-                            <LockSvg width={responsiveFontSize(2.3)} height={responsiveFontSize(2.2)} />
-                            <RNTextInput
-                                style={styles.textInput}
-                                placeholder="Password*"
-                                placeholderTextColor={'gray'}
-                                value={password}
-                                onChangeText={setPassword}
-                                secureTextEntry={!showPassword}
-                                keyboardType='default'
-                                onFocus={() => setFocusedInput('password')}
-                                onBlur={() => setFocusedInput(null)}
-                            />
-                            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.togglePassword}>
-                                {showPassword ? (
-                                    <Feather name="eye" size={responsiveFontSize(2.3)} color="gray" />
-                                ) : (
-                                    <Feather name="eye-off" size={responsiveFontSize(2.3)} color="gray" />
-                                )}
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* OTP Input Field - Always render but conditionally display */}
-                        {visibleOtpUI && (
-                            <View style={styles.otpFieldContainer}>
-                                <CodeField
-                                    ref={codeFieldRef}
-                                    {...props}
-                                    value={otp}
-                                    onChangeText={handleOtpChange}
-                                    cellCount={5}
-                                    keyboardType="number-pad"
-                                    textContentType="oneTimeCode"
-                                    autoComplete={Platform.select({ android: 'sms-otp', default: 'one-time-code' })}
-                                    renderCell={({ index, symbol, isFocused }) => (
-                                        <TouchableOpacity
-                                            key={index}
-                                            onPress={() => handleCellPress(index)}
-                                            activeOpacity={0.7}
-                                        >
-                                            <View
-                                                style={[
-                                                    styles.cell,
-                                                    {
-                                                        borderColor: (isFocused || index === activeIndex) ? '#61A443' : '#ccc',
-                                                        backgroundColor: symbol ? '#61A443' : 'transparent',
-                                                    },
-                                                ]}
-                                            >
-                                                <Text style={[
-                                                    styles.cellText,
-                                                    { color: symbol ? '#FFF' : '#000' }
-                                                ]}>
-                                                    {symbol || (isFocused && index === activeIndex ? <Cursor style={{ backgroundColor: '#61A443' }} /> : null)}
-                                                </Text>
-                                            </View>
-                                        </TouchableOpacity>
-                                    )}
-                                />
-
-                                {/* Hidden TextInput for Manual Position Control */}
-                                <RNTextInput
-                                    style={{ height: 0, width: 0, opacity: 0 }}
-                                    value={otp}
-                                    onChangeText={handleOtpChange}
-                                    keyboardType="number-pad"
-                                    maxLength={5}
-                                    selection={{ start: activeIndex, end: activeIndex }}
-                                    onSelectionChange={(event) => {
-                                        setActiveIndex(event.nativeEvent.selection.start);
-                                    }}
-                                />
-                            </View>
-                        )}
-
-                        {visibleOtpUI && (
-                            <TouchableOpacity onPress={sendOtp} style={styles.sendOtp}>
-                                <View >
-                                    {otpLoader ? (
-                                        <ActivityIndicator size="small" color="#61A443" />
-                                    ) : (
-                                        <Text style={styles.sendOtpText}>Resend OTP</Text>
-                                    )}
-                                </View>
-                            </TouchableOpacity>
-                        )}
-                    </View>
-
-                    <TouchableOpacity
-                        onPress={handleSignIn}
-                        disabled={!isFormValid || (visibleOtpUI && otp.length < 5)}
-                    >
-                        <View
-                            style={[
-                                styles.nextBtn,
-                                { opacity: (isFormValid && (!visibleOtpUI || otp.length === 5)) ? 1 : 0.5 },
-                            ]}
-                        >
-                            {isLoading ? (
-                                <ActivityIndicator size={'small'} color={'#FFF'} />
-                            ) : (
-                                <>
-                                    <MaterialIcons name={'login'} size={responsiveFontSize(2)} color={'white'} />
-                                    <Text style={styles.nextBtnText}>
-                                        Sign In
-                                    </Text>
-                                </>
-                            )}
-                        </View>
-                    </TouchableOpacity>
+                <Header />
+                
+                <View style={styles.signIn}>
+                    <MaterialIcons name="login" size={responsiveFontSize(2.7)} color="black" />
+                    <Text style={styles.signInText}>Sign In</Text>
                 </View>
+
+                <View style={styles.inputContainer}>
+                    {/* Email Input */}
+                    <View style={[
+                        styles.inputWrapper,
+                        focusedInput === 'email' && styles.inputWrapperFocused
+                    ]}>
+                        <EmailSvg width={responsiveFontSize(2.3)} height={responsiveFontSize(2.2)} />
+                        <RNTextInput
+                            style={styles.textInput}
+                            placeholder="Email ID*"
+                            placeholderTextColor="gray"
+                            value={email}
+                            onChangeText={setEmail}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            onFocus={() => setFocusedInput('email')}
+                            onBlur={() => setFocusedInput(null)}
+                        />
+                    </View>
+
+                    {/* Password Input */}
+                    <View style={[
+                        styles.inputWrapper,
+                        focusedInput === 'password' && styles.inputWrapperFocused
+                    ]}>
+                        <LockSvg width={responsiveFontSize(2.3)} height={responsiveFontSize(2.2)} />
+                        <RNTextInput
+                            style={styles.textInput}
+                            placeholder="Password*"
+                            placeholderTextColor="gray"
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry={!showPassword}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            onFocus={() => setFocusedInput('password')}
+                            onBlur={() => setFocusedInput(null)}
+                        />
+                        <TouchableOpacity 
+                            onPress={() => setShowPassword(!showPassword)} 
+                            style={styles.togglePassword}
+                        >
+                            <Feather 
+                                name={showPassword ? "eye" : "eye-off"} 
+                                size={responsiveFontSize(2.3)} 
+                                color="gray" 
+                            />
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* OTP Input */}
+                    {visibleOtpUI && (
+                        <View style={styles.otpFieldContainer}>
+                            <CodeField
+                                ref={codeFieldRef}
+                                {...props}
+                                value={otp}
+                                onChangeText={handleOtpChange}
+                                cellCount={5}
+                                keyboardType="number-pad"
+                                textContentType="oneTimeCode"
+                                autoComplete={Platform.select({ 
+                                    android: 'sms-otp', 
+                                    default: 'one-time-code' 
+                                })}
+                                renderCell={({ index, symbol, isFocused }) => (
+                                    <TouchableOpacity
+                                        key={index}
+                                        onPress={() => handleCellPress(index)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <View style={[
+                                            styles.cell,
+                                            {
+                                                borderColor: (isFocused || index === activeIndex) 
+                                                    ? '#61A443' : '#ccc',
+                                                backgroundColor: symbol ? '#61A443' : 'transparent',
+                                            },
+                                        ]}>
+                                            <Text style={[
+                                                styles.cellText,
+                                                { color: symbol ? '#FFF' : '#000' }
+                                            ]}>
+                                                {symbol || (isFocused && index === activeIndex ? 
+                                                    <Cursor style={{ backgroundColor: '#61A443' }} /> : null)}
+                                            </Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                )}
+                            />
+
+                            {/* Hidden TextInput for cursor control */}
+                            <RNTextInput
+                                style={{ height: 0, width: 0, opacity: 0 }}
+                                value={otp}
+                                onChangeText={handleOtpChange}
+                                keyboardType="number-pad"
+                                maxLength={5}
+                                selection={{ start: activeIndex, end: activeIndex }}
+                                onSelectionChange={(event) => {
+                                    setActiveIndex(event.nativeEvent.selection.start);
+                                }}
+                            />
+                        </View>
+                    )}
+
+                    {/* Resend OTP Button */}
+                    {visibleOtpUI && (
+                        <TouchableOpacity onPress={sendOtp} style={styles.sendOtp}>
+                            {otpLoader ? (
+                                <ActivityIndicator size="small" color="#61A443" />
+                            ) : (
+                                <Text style={styles.sendOtpText}>Resend OTP</Text>
+                            )}
+                        </TouchableOpacity>
+                    )}
+                </View>
+
+                {/* Sign In Button */}
+                <TouchableOpacity
+                    onPress={handleSignIn}
+                    disabled={!isSubmitReady || isLoading}
+                    style={[
+                        styles.nextBtn,
+                        { opacity: (isSubmitReady && !isLoading) ? 1 : 0.5 },
+                    ]}
+                >
+                    {isLoading ? (
+                        <ActivityIndicator size="small" color="#FFF" />
+                    ) : (
+                        <>
+                            <MaterialIcons name="login" size={responsiveFontSize(2)} color="white" />
+                            <Text style={styles.nextBtnText}>Sign In</Text>
+                        </>
+                    )}
+                </TouchableOpacity>
             </KeyboardAvoidingView>
         </TouchableWithoutFeedback>
     );
@@ -416,28 +479,22 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#FEFEFF',
     },
-    header: {
-        alignSelf: 'flex-end',
-        marginTop: 20,
-        marginHorizontal: 20,
-    },
-    textContainer: {
+    signIn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: responsiveHeight(2),
         marginLeft: 20,
+        marginTop: responsiveHeight(6),
     },
-    text1: {
-        fontSize: responsiveFontSize(3.5),
-        color: '#222327',
-        fontFamily: 'Poppins-SemiBold'
-    },
-    text2: {
-        fontSize: responsiveFontSize(2.1),
-        color: '#61A443',
-        fontFamily: 'Montserrat-Medium',
-        lineHeight: 22.05,
+    signInText: {
+        fontSize: responsiveFontSize(2.7),
+        color: 'black',
+        fontFamily: 'Poppins-Medium',
+        marginLeft: 10,
     },
     inputContainer: {
         width: responsiveWidth(90),
-        alignSelf: 'center'
+        alignSelf: 'center',
     },
     inputWrapper: {
         flexDirection: 'row',
@@ -449,10 +506,7 @@ const styles = StyleSheet.create({
         paddingLeft: 10,
         backgroundColor: '#FFFFFF',
         shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 1,
-        },
+        shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
         shadowRadius: 2,
         elevation: 2,
@@ -473,25 +527,8 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins-Regular',
         paddingVertical: 8,
     },
-    icon: {
-        // width: 200,
-        // height: 200,
-    },
     togglePassword: {
         paddingRight: 10,
-    },
-    signIn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: responsiveHeight(2),
-        marginLeft: 20,
-        marginTop: responsiveHeight(6),
-    },
-    signInText: {
-        fontSize: responsiveFontSize(2.7),
-        color: 'black',
-        fontFamily: 'Poppins-Medium',
-        marginLeft: 10,
     },
     nextBtn: {
         width: '90%',
